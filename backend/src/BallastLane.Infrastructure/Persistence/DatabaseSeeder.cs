@@ -16,16 +16,6 @@ public sealed class DatabaseSeeder(
 
     private const string CountUsersQuery = "SELECT COUNT(*) FROM users;";
 
-    private const string InsertUserQuery = """
-        INSERT INTO users (id, email, password_hash, created_at)
-        VALUES (@id, @email, @password_hash, @created_at);
-        """;
-
-    private const string InsertTaskQuery = """
-        INSERT INTO tasks (id, title, description, status, due_date, user_id, created_at, updated_at)
-        VALUES (@id, @title, @description, @status, @due_date, @user_id, @created_at, @updated_at);
-        """;
-
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         await using var connection = (NpgsqlConnection)await connectionFactory.CreateAsync(cancellationToken);
@@ -56,7 +46,7 @@ public sealed class DatabaseSeeder(
         DateTime now,
         CancellationToken cancellationToken)
     {
-        await using var command = new NpgsqlCommand(InsertUserQuery, connection);
+        await using var command = new NpgsqlCommand(UserSql.Insert, connection);
         command.Parameters.AddWithValue("@id", userId);
         command.Parameters.AddWithValue("@email", _seed.DemoUserEmail);
         command.Parameters.AddWithValue("@password_hash", passwordHash);
@@ -79,7 +69,7 @@ public sealed class DatabaseSeeder(
 
         foreach (var (id, title, description, status, dueDate) in tasks)
         {
-            await using var command = new NpgsqlCommand(InsertTaskQuery, connection);
+            await using var command = new NpgsqlCommand(TaskSql.Insert, connection);
             command.Parameters.AddWithValue("@id", id);
             command.Parameters.AddWithValue("@title", title);
             command.Parameters.AddWithValue("@description", description);
