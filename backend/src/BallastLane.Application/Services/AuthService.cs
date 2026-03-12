@@ -3,6 +3,7 @@ using BallastLane.Application.Validators;
 using BallastLane.Domain.Common;
 using BallastLane.Domain.Entities;
 using BallastLane.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace BallastLane.Application.Services;
 
@@ -11,7 +12,8 @@ public sealed class AuthService(
     IPasswordHasher passwordHasher,
     IJwtProvider jwtProvider,
     AuthValidator validator,
-    IDateTimeProvider clock) : IAuthService
+    IDateTimeProvider clock,
+    ILogger<AuthService> logger) : IAuthService
 {
     private const string InvalidCredentialsMessage = "Invalid email or password.";
 
@@ -31,9 +33,11 @@ public sealed class AuthService(
         var user = User.Create(Guid.NewGuid(), request.Email, hash);
         var saveResult = await userRepository.SaveAsync(user, cancellationToken);
 
-        return saveResult.IsSuccess
-            ? Result<User>.Ok(user)
-            : Result<User>.Fail(saveResult.Errors);
+        if (!saveResult.IsSuccess)
+            return Result<User>.Fail(saveResult.Errors);
+
+        logger.LogInformation("User registered: {Email}", request.Email);
+        return Result<User>.Ok(user);
     }
 
     public async Task<Result<AuthResponse>> LoginAsync(
@@ -46,13 +50,20 @@ public sealed class AuthService(
 
         var user = await userRepository.FindByEmailAsync(request.Email, cancellationToken);
         if (user is null)
+        {
+            logger.LogWarning("Failed login attempt for: {Email}", request.Email);
             return Result<AuthResponse>.Fail(InvalidCredentialsMessage);
+        }
 
         if (!passwordHasher.Verify(request.Password, user.PasswordHash))
+        {
+            logger.LogWarning("Failed login attempt for: {Email}", request.Email);
             return Result<AuthResponse>.Fail(InvalidCredentialsMessage);
+        }
 
         var token = jwtProvider.Generate(user);
         var expiresAt = clock.UtcNow.AddMinutes(jwtProvider.ExpiryMinutes);
+        logger.LogInformation("User logged in: {UserId}", user.Id);
         return Result<AuthResponse>.Ok(new AuthResponse(token, expiresAt, user.Id));
     }
 

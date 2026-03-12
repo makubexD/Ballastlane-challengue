@@ -3,13 +3,15 @@ using BallastLane.Application.Validators;
 using BallastLane.Domain.Common;
 using BallastLane.Domain.Entities;
 using BallastLane.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace BallastLane.Application.Services;
 
 public sealed class TaskService(
     IUnitOfWork unitOfWork,
     TaskValidator validator,
-    IDateTimeProvider clock) : ITaskCommandService, ITaskQueryService
+    IDateTimeProvider clock,
+    ILogger<TaskService> logger) : ITaskCommandService, ITaskQueryService
 {
     public async Task<Result<TaskItem>> CreateTaskAsync(
         CreateTaskRequest request,
@@ -23,6 +25,7 @@ public sealed class TaskService(
         var task = TaskItem.Create(Guid.NewGuid(), request.Title, request.Description, request.Status, request.DueDate, userId);
         await unitOfWork.Tasks.SaveAsync(task, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
+        logger.LogInformation("Task created: {TaskId} for user {UserId}", task.Id, userId);
         return Result<TaskItem>.Ok(task);
     }
 
@@ -87,6 +90,7 @@ public sealed class TaskService(
 
         await unitOfWork.Tasks.DeleteAsync(id, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
+        logger.LogInformation("Task deleted: {TaskId} by user {UserId}", id, requestingUserId);
         return Result.Ok();
     }
 }
