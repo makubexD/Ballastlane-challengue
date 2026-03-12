@@ -1,11 +1,17 @@
+using BallastLane.Application.CQRS;
 using BallastLane.Application.EventHandlers;
 using BallastLane.Application.Events;
 using BallastLane.Application.Services;
+using BallastLane.Application.Tasks.Commands;
+using BallastLane.Application.Tasks.Handlers;
+using BallastLane.Application.Tasks.Queries;
 using BallastLane.Application.Validators;
+using BallastLane.Domain.Entities;
 using BallastLane.Domain.Events;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Infrastructure.Auth;
 using BallastLane.Infrastructure.Common;
+using BallastLane.Infrastructure.CQRS;
 using BallastLane.Infrastructure.Events;
 using BallastLane.Infrastructure.Persistence;
 using BallastLane.Infrastructure.Settings;
@@ -67,6 +73,19 @@ public static class InfrastructureServiceExtensions
 
         services.AddSingleton<DatabaseMigrator>();
         services.AddSingleton<DatabaseSeeder>();
+
+        // CQRS dispatchers
+        services.AddScoped<ICommandDispatcher, CommandDispatcher>();
+        services.AddScoped<IQueryDispatcher, QueryDispatcher>();
+
+        // Task command handlers
+        services.AddScoped<ICommandHandler<CreateTaskCommand, TaskItem>, CreateTaskCommandHandler>();
+        services.AddScoped<ICommandHandler<UpdateTaskCommand, TaskItem>, UpdateTaskCommandHandler>();
+        services.AddScoped<ICommandHandler<DeleteTaskCommand>, DeleteTaskCommandHandler>();
+
+        // Task query handlers
+        services.AddScoped<IQueryHandler<GetTaskByIdQuery, TaskItem>, GetTaskByIdQueryHandler>();
+        services.AddScoped<IQueryHandler<GetAllTasksQuery, IReadOnlyList<TaskItem>>, GetAllTasksQueryHandler>();
 
         return services;
     }
