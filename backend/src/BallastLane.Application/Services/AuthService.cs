@@ -1,7 +1,9 @@
 using BallastLane.Application.DTOs;
+using BallastLane.Application.Events;
 using BallastLane.Application.Validators;
 using BallastLane.Domain.Common;
 using BallastLane.Domain.Entities;
+using BallastLane.Domain.Events;
 using BallastLane.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -13,7 +15,8 @@ public sealed class AuthService(
     IJwtProvider jwtProvider,
     AuthValidator validator,
     IDateTimeProvider clock,
-    ILogger<AuthService> logger) : IAuthService
+    ILogger<AuthService> logger,
+    IDomainEventDispatcher eventDispatcher) : IAuthService
 {
     private const string InvalidCredentialsMessage = "Invalid email or password.";
 
@@ -37,6 +40,7 @@ public sealed class AuthService(
             return Result<User>.Fail(saveResult.Errors[0], saveResult.ErrorType);
 
         logger.LogInformation("User registered: {Email}", request.Email);
+        await eventDispatcher.DispatchAsync(new UserRegisteredEvent(user.Id, user.Email, clock.UtcNow), cancellationToken);
         return Result<User>.Ok(user);
     }
 

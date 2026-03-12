@@ -1,8 +1,12 @@
+using BallastLane.Application.EventHandlers;
+using BallastLane.Application.Events;
 using BallastLane.Application.Services;
 using BallastLane.Application.Validators;
+using BallastLane.Domain.Events;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Infrastructure.Auth;
 using BallastLane.Infrastructure.Common;
+using BallastLane.Infrastructure.Events;
 using BallastLane.Infrastructure.Persistence;
 using BallastLane.Infrastructure.Settings;
 using Microsoft.Extensions.Configuration;
@@ -55,6 +59,11 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<ITaskCommandService>(sp => sp.GetRequiredService<TaskService>());
         services.AddScoped<ITaskQueryService>(sp => sp.GetRequiredService<TaskService>());
         services.AddScoped<IAuthService, AuthService>();
+
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<IDomainEventHandler<TaskCreatedEvent>, TaskCreatedEventHandler>();
+        services.AddScoped<IDomainEventHandler<TaskDeletedEvent>, TaskDeletedEventHandler>();
+        services.AddScoped<IDomainEventHandler<UserRegisteredEvent>, UserRegisteredEventHandler>();
 
         services.AddSingleton<DatabaseMigrator>();
         services.AddSingleton<DatabaseSeeder>();
