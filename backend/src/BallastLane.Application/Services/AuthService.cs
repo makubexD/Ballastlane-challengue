@@ -1,0 +1,69 @@
+using BallastLane.Application.DTOs;
+using BallastLane.Application.Validators;
+using BallastLane.Domain.Common;
+using BallastLane.Domain.Entities;
+using BallastLane.Domain.Interfaces;
+
+namespace BallastLane.Application.Services;
+
+public sealed class AuthService(
+    IUserRepository userRepository,
+    IPasswordHasher passwordHasher,
+    IJwtProvider jwtProvider,
+    AuthValidator validator,
+    IDateTimeProvider clock) : IAuthService
+{
+    private const string InvalidCredentialsMessage = "Invalid email or password.";
+
+    public async Task<Result<User>> RegisterAsync(
+        RegisterRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var errors = validator.Validate(request);
+        if (errors.Count > 0)
+            return Result<User>.Fail(errors);
+
+        var existing = await userRepository.FindByEmailAsync(request.Email, cancellationToken);
+        if (existing is not null)
+            return Result<User>.Fail("An account with this email already exists.");
+
+        var hash = passwordHasher.Hash(request.Password);
+        var user = User.Create(Guid.NewGuid(), request.Email, hash);
+        var saveResult = await userRepository.SaveAsync(user, cancellationToken);
+
+        return saveResult.IsSuccess
+            ? Result<User>.Ok(user)
+            : Result<User>.Fail(saveResult.Errors);
+    }
+
+    public async Task<Result<AuthResponse>> LoginAsync(
+        LoginRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var errors = validator.Validate(request);
+        if (errors.Count > 0)
+            return Result<AuthResponse>.Fail(errors);
+
+        var user = await userRepository.FindByEmailAsync(request.Email, cancellationToken);
+        if (user is null)
+            return Result<AuthResponse>.Fail(InvalidCredentialsMessage);
+
+        if (!passwordHasher.Verify(request.Password, user.PasswordHash))
+            return Result<AuthResponse>.Fail(InvalidCredentialsMessage);
+
+        var token = jwtProvider.Generate(user);
+        var expiresAt = clock.UtcNow.AddMinutes(60);
+        return Result<AuthResponse>.Ok(new AuthResponse(token, expiresAt, user.Id));
+    }
+
+    public async Task<Result<UserProfileResponse>> GetCurrentUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await userRepository.FindByIdAsync(userId, cancellationToken);
+        if (user is null)
+            return Result<UserProfileResponse>.Fail($"User '{userId}' was not found.");
+
+        return Result<UserProfileResponse>.Ok(new UserProfileResponse(user.Id, user.Email, user.CreatedAt));
+    }
+}

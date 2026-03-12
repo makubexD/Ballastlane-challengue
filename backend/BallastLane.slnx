@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BallastLane.API/BallastLane.API.csproj" />
+    <Project Path="src/BallastLane.Application/BallastLane.Application.csproj" />
+    <Project Path="src/BallastLane.Domain/BallastLane.Domain.csproj" />
+    <Project Path="src/BallastLane.Infrastructure/BallastLane.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BallastLane.Tests/BallastLane.Tests.csproj" />
+  </Folder>
+</Solution>
