@@ -69,8 +69,11 @@ public static class InfrastructureServiceExtensions
 
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IDomainEventHandler<TaskCreatedEvent>, TaskCreatedEventHandler>();
+        services.AddScoped<IDomainEventHandler<TaskCreatedEvent>, TaskCreatedAuditHandler>();
         services.AddScoped<IDomainEventHandler<TaskDeletedEvent>, TaskDeletedEventHandler>();
+        services.AddScoped<IDomainEventHandler<TaskDeletedEvent>, TaskDeletedAuditHandler>();
         services.AddScoped<IDomainEventHandler<UserRegisteredEvent>, UserRegisteredEventHandler>();
+        services.AddScoped<IDomainEventHandler<UserRegisteredEvent>, UserRegisteredAuditHandler>();
 
         services.AddSingleton<DatabaseMigrator>();
         services.AddSingleton<DatabaseSeeder>();
