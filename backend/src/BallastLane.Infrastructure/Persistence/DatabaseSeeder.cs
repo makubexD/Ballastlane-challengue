@@ -1,4 +1,5 @@
 using BallastLane.Domain.Interfaces;
+using BallastLane.Domain.ValueObjects;
 using Npgsql;
 
 namespace BallastLane.Infrastructure.Persistence;
@@ -67,9 +68,9 @@ public sealed class DatabaseSeeder(string connectionString, IPasswordHasher pass
     {
         var tasks = new[]
         {
-            (Guid.NewGuid(), "Set up project repository", "Initialize the Git repo, configure .gitignore, and set up Docker Compose for the development database.", "Todo", now.AddDays(7)),
-            (Guid.NewGuid(), "Implement authentication API", "Build the register and login endpoints with JWT token generation and BCrypt password hashing.", "InProgress", now.AddDays(3)),
-            (Guid.NewGuid(), "Write unit tests for TaskService", "Achieve 100% coverage on TaskService using xUnit and Moq, following Red-Green-Refactor.", "Done", now.AddDays(1))
+            (Guid.NewGuid(), "Set up project repository", "Initialize the Git repo, configure .gitignore, and set up Docker Compose for the development database.", TaskItemStatus.Todo.ToString(), now.AddDays(7)),
+            (Guid.NewGuid(), "Implement authentication API", "Build the register and login endpoints with JWT token generation and BCrypt password hashing.", TaskItemStatus.InProgress.ToString(), now.AddDays(3)),
+            (Guid.NewGuid(), "Write unit tests for TaskService", "Achieve 100% coverage on TaskService using xUnit and Moq, following Red-Green-Refactor.", TaskItemStatus.Done.ToString(), now.AddDays(1))
         };
 
         foreach (var (id, title, description, status, dueDate) in tasks)

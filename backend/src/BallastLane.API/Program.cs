@@ -62,7 +62,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-    ?? ["http://localhost:4200"];
+    ?? [Program.DefaultCorsOrigin];
 
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
@@ -96,4 +96,7 @@ app.MapControllers();
 
 app.Run();
 
-public partial class Program { }
+public partial class Program
+{
+    private const string DefaultCorsOrigin = "http://localhost:4200";
+}

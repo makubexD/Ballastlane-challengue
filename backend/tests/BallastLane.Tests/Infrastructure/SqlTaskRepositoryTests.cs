@@ -11,8 +11,13 @@ namespace BallastLane.Tests.Infrastructure;
 [Trait("Category", "Integration")]
 public sealed class SqlTaskRepositoryTests : IAsyncLifetime
 {
-    private const string FallbackConnectionString =
-        "Host=localhost;Port=5433;Database=ballastlane_test;Username=ballastlane_test;Password=ballastlane_test";
+    private const string TestUserEmail = "testuser@example.com";
+    private const string OtherUserEmail = "otheruser@example.com";
+    private const string TestPasswordHash = "$2a$12$placeholder";
+    private const string TaskTitleUserA1 = "User A Task 1";
+    private const string TaskTitleUserA2 = "User A Task 2";
+    private const string TaskTitleUserB1 = "User B Task 1";
+    private const string UpdatedTitle = "Updated Title";
 
     private const string InsertTestUserSql =
         "INSERT INTO users (id, email, password_hash, created_at) VALUES (@id, @email, @password_hash, @created_at);";
@@ -24,7 +29,7 @@ public sealed class SqlTaskRepositoryTests : IAsyncLifetime
     private const string DeleteUserSql = "DELETE FROM users WHERE id = @id OR id = @other_id;";
 
     private readonly string _connectionString =
-        Environment.GetEnvironmentVariable("TEST_DB_CONNECTION") ?? FallbackConnectionString;
+        Environment.GetEnvironmentVariable("TEST_DB_CONNECTION") ?? TestConstants.IntegrationDbConnectionString;
 
     private readonly Guid _testUserId = TestConstants.ValidUserId;
     private readonly Guid _otherUserId = TestConstants.OtherUserId;
@@ -38,8 +43,8 @@ public sealed class SqlTaskRepositoryTests : IAsyncLifetime
         var migrator = new DatabaseMigrator(_connectionString);
         await migrator.MigrateAsync();
 
-        await InsertTestUserAsync(_testUserId, "testuser@example.com");
-        await InsertTestUserAsync(_otherUserId, "otheruser@example.com");
+        await InsertTestUserAsync(_testUserId, TestUserEmail);
+        await InsertTestUserAsync(_otherUserId, OtherUserEmail);
 
         _sut = new SqlTaskRepository(_connectionFactory);
     }
@@ -100,9 +105,9 @@ public sealed class SqlTaskRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetAllByUserIdAsync_ShouldReturnOnlyTasksForSpecifiedUser()
     {
-        var taskA1 = TestDataBuilder.ValidTask(id: Guid.NewGuid(), userId: _testUserId, title: "User A Task 1");
-        var taskA2 = TestDataBuilder.ValidTask(id: Guid.NewGuid(), userId: _testUserId, title: "User A Task 2");
-        var taskB1 = TestDataBuilder.ValidTask(id: Guid.NewGuid(), userId: _otherUserId, title: "User B Task 1");
+        var taskA1 = TestDataBuilder.ValidTask(id: Guid.NewGuid(), userId: _testUserId, title: TaskTitleUserA1);
+        var taskA2 = TestDataBuilder.ValidTask(id: Guid.NewGuid(), userId: _testUserId, title: TaskTitleUserA2);
+        var taskB1 = TestDataBuilder.ValidTask(id: Guid.NewGuid(), userId: _otherUserId, title: TaskTitleUserB1);
         await _sut.SaveAsync(taskA1);
         await _sut.SaveAsync(taskA2);
         await _sut.SaveAsync(taskB1);
@@ -121,7 +126,7 @@ public sealed class SqlTaskRepositoryTests : IAsyncLifetime
 
         var updated = TaskItem.Create(
             task.Id,
-            "Updated Title",
+            UpdatedTitle,
             task.Description,
             TaskItemStatus.InProgress,
             task.DueDate,
@@ -130,7 +135,7 @@ public sealed class SqlTaskRepositoryTests : IAsyncLifetime
 
         var persisted = await _sut.GetByIdAsync(task.Id);
         Assert.NotNull(persisted);
-        Assert.Equal("Updated Title", persisted.Title);
+        Assert.Equal(UpdatedTitle, persisted.Title);
         Assert.Equal(TaskItemStatus.InProgress, persisted.Status);
     }
 
@@ -153,7 +158,7 @@ public sealed class SqlTaskRepositoryTests : IAsyncLifetime
         await using var cmd = new NpgsqlCommand(InsertTestUserSql, connection);
         cmd.Parameters.AddWithValue("@id", userId);
         cmd.Parameters.AddWithValue("@email", email);
-        cmd.Parameters.AddWithValue("@password_hash", "$2a$12$placeholder");
+        cmd.Parameters.AddWithValue("@password_hash", TestPasswordHash);
         cmd.Parameters.AddWithValue("@created_at", DateTime.UtcNow);
         await cmd.ExecuteNonQueryAsync();
     }

@@ -5,12 +5,14 @@ namespace BallastLane.API.Extensions;
 
 public static class ResultExtensions
 {
+    private const string NotFoundFragment = "not found";
+
     public static IActionResult ToActionResult<T>(this Result<T> result, Func<T, IActionResult> onSuccess)
     {
         if (result.IsSuccess)
             return onSuccess(result.Value);
 
-        return result.Errors.Count == 1 && result.Errors[0].Contains("not found", StringComparison.OrdinalIgnoreCase)
+        return result.Errors.Count == 1 && result.Errors[0].Contains(NotFoundFragment, StringComparison.OrdinalIgnoreCase)
             ? new NotFoundObjectResult(new { errors = result.Errors })
             : new BadRequestObjectResult(new { errors = result.Errors });
     }
@@ -20,7 +22,7 @@ public static class ResultExtensions
         if (result.IsSuccess)
             return new NoContentResult();
 
-        return result.Errors.Count == 1 && result.Errors[0].Contains("not found", StringComparison.OrdinalIgnoreCase)
+        return result.Errors.Count == 1 && result.Errors[0].Contains(NotFoundFragment, StringComparison.OrdinalIgnoreCase)
             ? new NotFoundObjectResult(new { errors = result.Errors })
             : new BadRequestObjectResult(new { errors = result.Errors });
     }
