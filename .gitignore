@@ -1,0 +1,47 @@
+# .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.ncrunch*
+*.DotSettings.user
+
+# .NET runtime / test output
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Secrets — never commit real env files
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+appsettings.Production.json
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+*.js.map
+
+# Angular CLI cache
+.angular/cache/
+
+# Coverage (frontend)
+coverage/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.swp
+*.swo
