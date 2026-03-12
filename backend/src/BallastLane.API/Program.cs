@@ -1,8 +1,10 @@
 using System.Text;
 using BallastLane.API.Middleware;
 using BallastLane.API.Services;
+using BallastLane.API.Settings;
 using BallastLane.Infrastructure.DependencyInjection;
 using BallastLane.Infrastructure.Persistence;
+using BallastLane.Infrastructure.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -26,8 +28,18 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
-var jwtSecret = builder.Configuration["JWT_SECRET"]
-    ?? throw new InvalidOperationException("JWT_SECRET is not configured.");
+// Bind settings early — IOptions<T> is not yet available before Build(),
+// so we bind directly from IConfiguration for consumers that run at startup.
+var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
+    ?? throw new InvalidOperationException("Jwt settings are not configured.");
+
+var corsSettings = builder.Configuration.GetSection(CorsSettings.SectionName).Get<CorsSettings>()
+    ?? new CorsSettings();
+
+builder.Services.AddOptions<CorsSettings>()
+    .Bind(builder.Configuration.GetSection(CorsSettings.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -35,7 +47,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
             ValidateIssuer = false,
             ValidateAudience = false,
             ValidateLifetime = true,
@@ -69,12 +81,9 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-    ?? [Program.DefaultCorsOrigin];
-
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins(allowedOrigins)
+        policy.WithOrigins(corsSettings.AllowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader()));
 
@@ -117,7 +126,4 @@ finally
     Log.CloseAndFlush();
 }
 
-public partial class Program
-{
-    private const string DefaultCorsOrigin = "http://localhost:4200";
-}
+public partial class Program { }

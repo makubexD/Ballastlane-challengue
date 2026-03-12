@@ -1,14 +1,18 @@
 using BallastLane.Domain.Interfaces;
 using BallastLane.Domain.ValueObjects;
 using BallastLane.Infrastructure.Common;
+using BallastLane.Infrastructure.Settings;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace BallastLane.Infrastructure.Persistence;
 
-public sealed class DatabaseSeeder(IDbConnectionFactory connectionFactory, IPasswordHasher passwordHasher)
+public sealed class DatabaseSeeder(
+    IDbConnectionFactory connectionFactory,
+    IPasswordHasher passwordHasher,
+    IOptions<SeedSettings> seedOptions)
 {
-    private const string DemoUserEmail = "demo@ballastlane.com";
-    private const string DemoUserPassword = "Demo@1234";
+    private readonly SeedSettings _seed = seedOptions.Value;
 
     private const string CountUsersQuery = "SELECT COUNT(*) FROM users;";
 
@@ -32,7 +36,7 @@ public sealed class DatabaseSeeder(IDbConnectionFactory connectionFactory, IPass
 
         var userId = Guid.NewGuid();
         var now = DateTime.UtcNow;
-        var passwordHash = passwordHasher.Hash(DemoUserPassword);
+        var passwordHash = passwordHasher.Hash(_seed.DemoUserPassword);
 
         await InsertDemoUserAsync(connection, userId, passwordHash, now, cancellationToken);
         await InsertDemoTasksAsync(connection, userId, now, cancellationToken);
@@ -45,7 +49,7 @@ public sealed class DatabaseSeeder(IDbConnectionFactory connectionFactory, IPass
         return (long)(result ?? 0L);
     }
 
-    private static async Task InsertDemoUserAsync(
+    private async Task InsertDemoUserAsync(
         NpgsqlConnection connection,
         Guid userId,
         string passwordHash,
@@ -54,7 +58,7 @@ public sealed class DatabaseSeeder(IDbConnectionFactory connectionFactory, IPass
     {
         await using var command = new NpgsqlCommand(InsertUserQuery, connection);
         command.Parameters.AddWithValue("@id", userId);
-        command.Parameters.AddWithValue("@email", DemoUserEmail);
+        command.Parameters.AddWithValue("@email", _seed.DemoUserEmail);
         command.Parameters.AddWithValue("@password_hash", passwordHash);
         command.Parameters.AddWithValue("@created_at", now);
         await command.ExecuteNonQueryAsync(cancellationToken);

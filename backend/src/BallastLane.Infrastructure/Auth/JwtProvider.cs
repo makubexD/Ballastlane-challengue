@@ -3,26 +3,22 @@ using System.Security.Claims;
 using System.Text;
 using BallastLane.Domain.Entities;
 using BallastLane.Domain.Interfaces;
-using Microsoft.Extensions.Configuration;
+using BallastLane.Infrastructure.Settings;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace BallastLane.Infrastructure.Auth;
 
-public sealed class JwtProvider(IConfiguration configuration, IDateTimeProvider clock) : IJwtProvider
+public sealed class JwtProvider(IOptions<JwtSettings> options, IDateTimeProvider clock) : IJwtProvider
 {
-    private const string SecretKey = "JWT_SECRET";
-    private const string ExpiryMinutesKey = "JWT_EXPIRY_MINUTES";
     private const string UserIdClaimType = "userId";
+    private readonly JwtSettings _settings = options.Value;
 
-    public int ExpiryMinutes => int.Parse(configuration[ExpiryMinutesKey] ?? "60");
+    public int ExpiryMinutes => _settings.ExpiryMinutes;
 
     public string Generate(User user)
     {
-        var secret = configuration[SecretKey]
-            ?? throw new InvalidOperationException($"Configuration key '{SecretKey}' is not set.");
-
-        var expiryMinutes = ExpiryMinutes;
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
@@ -35,7 +31,7 @@ public sealed class JwtProvider(IConfiguration configuration, IDateTimeProvider 
 
         var token = new JwtSecurityToken(
             claims: claims,
-            expires: clock.UtcNow.AddMinutes(expiryMinutes),
+            expires: clock.UtcNow.AddMinutes(_settings.ExpiryMinutes),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

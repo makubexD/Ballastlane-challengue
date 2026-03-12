@@ -1,19 +1,17 @@
 using System.Data;
-using Microsoft.Extensions.Configuration;
+using BallastLane.Infrastructure.Settings;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace BallastLane.Infrastructure.Common;
 
-public sealed class NpgsqlConnectionFactory(IConfiguration configuration) : IDbConnectionFactory
+public sealed class NpgsqlConnectionFactory(IOptions<DatabaseSettings> options) : IDbConnectionFactory
 {
-    private const string ConnectionStringKey = "Database";
+    private readonly string _connectionString = options.Value.Database;
 
     public async Task<IDbConnection> CreateAsync(CancellationToken cancellationToken = default)
     {
-        var connectionString = configuration.GetConnectionString(ConnectionStringKey)
-            ?? throw new InvalidOperationException($"Connection string '{ConnectionStringKey}' is not configured.");
-
-        var connection = new NpgsqlConnection(connectionString);
+        var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
         return connection;
     }
