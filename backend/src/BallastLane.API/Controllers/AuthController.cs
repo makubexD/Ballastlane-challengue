@@ -4,11 +4,13 @@ using BallastLane.Application.DTOs;
 using BallastLane.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace BallastLane.API.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting("auth")]
 public sealed class AuthController(IAuthService authService, ICurrentUserService currentUser) : ControllerBase
 {
     [HttpPost("register")]
