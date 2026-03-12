@@ -45,9 +45,9 @@ The backend API must be running on `http://localhost:5000` — see [../backend/R
 src/app/
 ├── core/
 │   └── auth/
-│       ├── auth.service.ts       # Signals: _token, isAuthenticated, currentUser
+│       ├── auth.service.ts       # Signals: isAuthenticated. Cookie-based login/logout + APP_INITIALIZER probe
 │       ├── auth.guard.ts         # Functional CanActivateFn — redirects to /login
-│       └── auth.interceptor.ts   # HttpInterceptorFn — attaches Bearer token
+│       └── auth.interceptor.ts   # HttpInterceptorFn — sets withCredentials: true on every request
 ├── shared/
 │   └── ui/
 │       ├── badge.component.ts    # Color-coded status badge (Todo/InProgress/Done)
@@ -76,12 +76,17 @@ src/app/
 
 ## Authentication Flow
 
-1. User submits credentials on `/login` → `AuthService.login()` calls `POST /api/auth/login`
-2. JWT token stored in `localStorage` and a `signal<string | null>()`
-3. `isAuthenticated = computed(() => _token() !== null)` drives the UI reactively
-4. `authInterceptor` attaches `Authorization: Bearer {token}` to every outgoing API request
-5. `authGuard` protects `/tasks` — unauthenticated users are redirected to `/login`
-6. `AuthService.logout()` clears localStorage and resets the signal
+1. **Bootstrap** — `APP_INITIALIZER` calls `AuthService.initialize()` which probes `GET /api/auth/me`
+   - 200 → `isAuthenticated` signal set to `true` (existing cookie still valid)
+   - 401/error → `isAuthenticated` set to `false` (no cookie or expired)
+2. **Login** — `AuthService.login()` calls `POST /api/auth/login` with `withCredentials: true`
+   - Backend sets `Set-Cookie: access_token=<jwt>; HttpOnly; SameSite=Lax/Strict`
+   - Token is **never** returned in the response body or stored in JavaScript
+3. **Requests** — `authInterceptor` clones every request with `withCredentials: true`; the browser
+   attaches the `access_token` cookie automatically
+4. **Guard** — `authGuard` reads `authService.isAuthenticated()` signal; unauthenticated users
+   redirected to `/login`
+5. **Logout** — `POST /api/auth/logout` → backend clears cookie → signal set to `false` → navigate to `/login`
 
 ---
 
@@ -94,8 +99,8 @@ All shared and component state uses Angular Signals:
 tasks = signal<Task[]>([]);
 isLoading = signal<boolean>(false);
 
-// Derived state
-isAuthenticated = computed(() => this._token() !== null);
+// Auth state — set by APP_INITIALIZER probe and login/logout
+isAuthenticated = signal(false);
 
 // Component-level state
 showForm = signal(false);
@@ -127,7 +132,7 @@ PostCSS plugin: `@tailwindcss/postcss` (configured in `.postcssrc.json`). Do not
 ## Running Tests
 
 ```bash
-# Run all 29 tests
+# Run all 30 tests
 npx vitest run
 
 # With V8 coverage report
@@ -140,7 +145,7 @@ npx vitest
 npx tsc --noEmit
 ```
 
-Tests use `TestBed.configureTestingModule()`, `data-testid` selectors, and native async/await (no `fakeAsync`/`tick`). HTTP calls are mocked with `HttpClientTestingModule` + `HttpTestingController`.
+Tests use `TestBed.configureTestingModule()`, `data-testid` selectors, and native async/await (no `fakeAsync`/`tick`). HTTP calls are mocked with `provideHttpClientTesting()` + `HttpTestingController`.
 
 ---
 

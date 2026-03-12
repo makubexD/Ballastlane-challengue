@@ -163,7 +163,7 @@ BallastLaneApp/
 - No Entity Framework, no Dapper, no MediatR — raw Npgsql ADO.NET only
 - No ASP.NET Core Identity — custom JWT (`System.IdentityModel.Tokens.Jwt`)
 - All code follows TDD (Red-Green-Refactor) with xUnit + Moq (backend) and vitest 4 + TestBed (frontend)
-- **Test coverage:** 72 backend unit tests + 10 integration tests + 29 frontend tests — all green
+- **Test coverage:** 153 backend unit tests + 10 integration tests + 30 frontend tests — all green
 
 ---
 
@@ -172,11 +172,13 @@ BallastLaneApp/
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | `/api/auth/register` | No | Register a new user |
-| POST | `/api/auth/login` | No | Login, returns JWT |
-| GET | `/api/auth/me` | JWT | Current user profile |
-| GET | `/api/public/ping` | No | Health check |
-| GET | `/api/tasks` | JWT | List my tasks |
-| GET | `/api/tasks/{id}` | JWT | Get task by ID |
-| POST | `/api/tasks` | JWT | Create task |
-| PUT | `/api/tasks/{id}` | JWT | Update task |
-| DELETE | `/api/tasks/{id}` | JWT | Delete task |
+| POST | `/api/auth/login` | No | Login — sets `HttpOnly` cookie |
+| POST | `/api/auth/logout` | Cookie | Logout — clears cookie |
+| GET | `/api/auth/me` | Cookie | Current user profile |
+| GET | `/healthz/live` | No | Liveness probe |
+| GET | `/healthz/ready` | No | Readiness probe (DB check) |
+| GET | `/api/tasks` | Cookie | List my tasks (paginated) |
+| GET | `/api/tasks/{id}` | Cookie | Get task by ID |
+| POST | `/api/tasks` | Cookie | Create task |
+| PUT | `/api/tasks/{id}` | Cookie | Update task |
+| DELETE | `/api/tasks/{id}` | Cookie | Delete task |

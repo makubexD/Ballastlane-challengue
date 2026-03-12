@@ -122,8 +122,8 @@ See `.env.example` at the repo root.
 ## Running Tests
 
 ```bash
-# Unit tests only (no database required) — 51 tests
-dotnet test --filter "Category!=Integration"
+# Unit tests only (no database required) — 153 tests
+dotnet test tests/BallastLane.Tests/
 
 # Run a single test class
 dotnet test --filter "FullyQualifiedName~TaskServiceTests"
@@ -145,11 +145,13 @@ Integration tests use `[Trait("Category", "Integration")]` and read the connecti
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | POST | `/api/auth/register` | No | Register a new user |
-| POST | `/api/auth/login` | No | Login — returns JWT |
-| GET | `/api/auth/me` | JWT | Current user profile |
-| GET | `/api/public/ping` | No | Health check |
-| GET | `/api/tasks` | JWT | List my tasks |
-| GET | `/api/tasks/{id}` | JWT | Get task by ID |
-| POST | `/api/tasks` | JWT | Create task |
-| PUT | `/api/tasks/{id}` | JWT | Update task |
-| DELETE | `/api/tasks/{id}` | JWT | Delete task |
+| POST | `/api/auth/login` | No | Login — sets `HttpOnly` `access_token` cookie |
+| POST | `/api/auth/logout` | Cookie | Logout — clears `access_token` cookie |
+| GET | `/api/auth/me` | Cookie | Current user profile |
+| GET | `/healthz/live` | No | Liveness probe |
+| GET | `/healthz/ready` | No | Readiness probe (DB connectivity check) |
+| GET | `/api/tasks` | Cookie | List my tasks — paginated (`?page=1&pageSize=20`) |
+| GET | `/api/tasks/{id}` | Cookie | Get task by ID |
+| POST | `/api/tasks` | Cookie | Create task |
+| PUT | `/api/tasks/{id}` | Cookie | Update task |
+| DELETE | `/api/tasks/{id}` | Cookie | Soft-delete task |
