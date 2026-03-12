@@ -12,15 +12,17 @@ namespace BallastLane.Infrastructure.Persistence;
 public sealed class NpgsqlUnitOfWork : IUnitOfWork
 {
     private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IDateTimeProvider _dateTimeProvider;
     private NpgsqlConnection? _connection;
     private NpgsqlTransaction? _transaction;
     private ITaskRepository? _tasks;
     private IUserRepository? _users;
     private bool _disposed;
 
-    public NpgsqlUnitOfWork(IDbConnectionFactory connectionFactory)
+    public NpgsqlUnitOfWork(IDbConnectionFactory connectionFactory, IDateTimeProvider dateTimeProvider)
     {
         _connectionFactory = connectionFactory;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public ITaskRepository Tasks => _tasks ?? throw new InvalidOperationException(
@@ -37,7 +39,7 @@ public sealed class NpgsqlUnitOfWork : IUnitOfWork
     {
         _connection = (NpgsqlConnection)await _connectionFactory.CreateAsync(cancellationToken);
         _transaction = await _connection.BeginTransactionAsync(cancellationToken);
-        _tasks = new TransactionalTaskRepository(_connection, _transaction);
+        _tasks = new TransactionalTaskRepository(_connection, _transaction, _dateTimeProvider);
         _users = new TransactionalUserRepository(_connection, _transaction);
     }
 

@@ -36,22 +36,8 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<ITaskQueryService>(sp => sp.GetRequiredService<TaskService>());
         services.AddScoped<IAuthService, AuthService>();
 
-        services.AddSingleton(sp =>
-        {
-            var config = sp.GetRequiredService<IConfiguration>();
-            var connStr = config.GetConnectionString("Database")
-                ?? throw new InvalidOperationException("Connection string 'Database' is not configured.");
-            return new DatabaseMigrator(connStr);
-        });
-
-        services.AddSingleton(sp =>
-        {
-            var config = sp.GetRequiredService<IConfiguration>();
-            var connStr = config.GetConnectionString("Database")
-                ?? throw new InvalidOperationException("Connection string 'Database' is not configured.");
-            var hasher = sp.GetRequiredService<IPasswordHasher>();
-            return new DatabaseSeeder(connStr, hasher);
-        });
+        services.AddSingleton<DatabaseMigrator>();
+        services.AddSingleton<DatabaseSeeder>();
 
         return services;
     }

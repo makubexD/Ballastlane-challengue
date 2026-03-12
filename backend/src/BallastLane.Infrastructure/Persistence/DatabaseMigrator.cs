@@ -1,8 +1,9 @@
+using BallastLane.Infrastructure.Common;
 using Npgsql;
 
 namespace BallastLane.Infrastructure.Persistence;
 
-public sealed class DatabaseMigrator(string connectionString)
+public sealed class DatabaseMigrator(IDbConnectionFactory connectionFactory)
 {
     private const string CreateUsersTable = """
         CREATE TABLE IF NOT EXISTS users (
@@ -31,8 +32,7 @@ public sealed class DatabaseMigrator(string connectionString)
 
     public async Task MigrateAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using var connection = (NpgsqlConnection)await connectionFactory.CreateAsync(cancellationToken);
 
         await ExecuteAsync(connection, CreateUsersTable, cancellationToken);
         await ExecuteAsync(connection, CreateTasksTable, cancellationToken);

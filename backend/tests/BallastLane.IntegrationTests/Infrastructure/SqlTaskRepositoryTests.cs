@@ -37,13 +37,13 @@ public sealed class SqlTaskRepositoryTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _connectionFactory = new DirectConnectionFactory(_connectionString);
-        var migrator = new DatabaseMigrator(_connectionString);
+        var migrator = new DatabaseMigrator(_connectionFactory);
         await migrator.MigrateAsync();
 
         await InsertTestUserAsync(_testUserId, TestUserEmail);
         await InsertTestUserAsync(_otherUserId, OtherUserEmail);
 
-        _sut = new SqlTaskRepository(_connectionFactory);
+        _sut = new SqlTaskRepository(_connectionFactory, new SystemDateTimeProvider());
     }
 
     public async Task DisposeAsync()

@@ -13,32 +13,11 @@ internal sealed class TransactionalUserRepository(
     NpgsqlConnection connection,
     NpgsqlTransaction transaction) : IUserRepository
 {
-    private const string InsertSql = """
-        INSERT INTO users (id, email, password_hash, created_at)
-        VALUES (@id, @email, @password_hash, @created_at);
-        """;
-
-    private const string SelectByEmailSql = """
-        SELECT id, email, password_hash, created_at
-        FROM users WHERE LOWER(email) = LOWER(@email);
-        """;
-
-    private const string SelectByIdSql = """
-        SELECT id, email, password_hash, created_at
-        FROM users WHERE id = @id;
-        """;
-
-    private const string DuplicateKeyViolation = "23505";
-
-    private const string ColId = "id";
-    private const string ColEmail = "email";
-    private const string ColPasswordHash = "password_hash";
-
     public async Task<Result> SaveAsync(User user, CancellationToken cancellationToken = default)
     {
         try
         {
-            await using var command = new NpgsqlCommand(InsertSql, connection, transaction);
+            await using var command = new NpgsqlCommand(UserSql.Insert, connection, transaction);
             command.Parameters.AddWithValue("@id", user.Id);
             command.Parameters.AddWithValue("@email", user.Email);
             command.Parameters.AddWithValue("@password_hash", user.PasswordHash);
@@ -46,7 +25,7 @@ internal sealed class TransactionalUserRepository(
             await command.ExecuteNonQueryAsync(cancellationToken);
             return Result.Ok();
         }
-        catch (PostgresException ex) when (ex.SqlState == DuplicateKeyViolation)
+        catch (PostgresException ex) when (ex.SqlState == UserSql.DuplicateKeyViolation)
         {
             return Result.Fail("An account with this email already exists.");
         }
@@ -54,24 +33,19 @@ internal sealed class TransactionalUserRepository(
 
     public async Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        await using var command = new NpgsqlCommand(SelectByEmailSql, connection, transaction);
+        await using var command = new NpgsqlCommand(UserSql.SelectByEmail, connection, transaction);
         command.Parameters.AddWithValue("@email", email);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        return await reader.ReadAsync(cancellationToken) ? MapToUser(reader) : null;
+        return await reader.ReadAsync(cancellationToken) ? UserSql.MapToUser(reader) : null;
     }
 
     public async Task<User?> FindByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using var command = new NpgsqlCommand(SelectByIdSql, connection, transaction);
+        await using var command = new NpgsqlCommand(UserSql.SelectById, connection, transaction);
         command.Parameters.AddWithValue("@id", id);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        return await reader.ReadAsync(cancellationToken) ? MapToUser(reader) : null;
+        return await reader.ReadAsync(cancellationToken) ? UserSql.MapToUser(reader) : null;
     }
-
-    private static User MapToUser(NpgsqlDataReader reader) => User.Create(
-        reader.GetGuid(reader.GetOrdinal(ColId)),
-        reader.GetString(reader.GetOrdinal(ColEmail)),
-        reader.GetString(reader.GetOrdinal(ColPasswordHash)));
 }

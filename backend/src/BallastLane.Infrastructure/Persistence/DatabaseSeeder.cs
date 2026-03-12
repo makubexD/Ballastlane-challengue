@@ -1,10 +1,11 @@
 using BallastLane.Domain.Interfaces;
 using BallastLane.Domain.ValueObjects;
+using BallastLane.Infrastructure.Common;
 using Npgsql;
 
 namespace BallastLane.Infrastructure.Persistence;
 
-public sealed class DatabaseSeeder(string connectionString, IPasswordHasher passwordHasher)
+public sealed class DatabaseSeeder(IDbConnectionFactory connectionFactory, IPasswordHasher passwordHasher)
 {
     private const string DemoUserEmail = "demo@ballastlane.com";
     private const string DemoUserPassword = "Demo@1234";
@@ -23,8 +24,7 @@ public sealed class DatabaseSeeder(string connectionString, IPasswordHasher pass
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using var connection = (NpgsqlConnection)await connectionFactory.CreateAsync(cancellationToken);
 
         var userCount = await CountUsersAsync(connection, cancellationToken);
         if (userCount > 0)
