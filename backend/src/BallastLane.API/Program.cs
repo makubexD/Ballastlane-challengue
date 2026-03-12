@@ -89,6 +89,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<ExceptionHandlerMiddleware>();
+app.UseMiddleware<UnitOfWorkMiddleware>();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();

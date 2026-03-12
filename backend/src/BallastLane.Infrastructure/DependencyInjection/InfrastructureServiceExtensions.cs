@@ -21,7 +21,12 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddSingleton<IJwtProvider, JwtProvider>();
 
-        services.AddScoped<ITaskRepository, SqlTaskRepository>();
+        // NpgsqlUnitOfWork is scoped — one per HTTP request.
+        // UnitOfWorkMiddleware calls BeginAsync before each request reaches a controller.
+        services.AddScoped<NpgsqlUnitOfWork>();
+        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<NpgsqlUnitOfWork>());
+
+        // AuthService uses IUserRepository directly (no write transaction needed there).
         services.AddScoped<IUserRepository, SqlUserRepository>();
 
         services.AddSingleton<TaskValidator>();
