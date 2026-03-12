@@ -13,8 +13,6 @@ namespace BallastLane.Tests.API;
 public sealed class TasksControllerTests
 {
     private const string TitleRequiredError = "Title is required.";
-    private const string AccessDeniedError = "Access denied";
-    private const string TaskNotFoundError = "task not found";
     private static readonly string[] TitleRequiredErrors = [TitleRequiredError];
 
     private static TasksController BuildController(
@@ -118,7 +116,7 @@ public sealed class TasksControllerTests
         currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
         queryService
             .Setup(s => s.GetTaskByIdAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<TaskItem>.Fail(TestConstants.NotFoundError));
+            .ReturnsAsync(Result<TaskItem>.Fail("Task was not found.", ResultErrorType.NotFound));
         var sut = BuildController(commandService, queryService, currentUser);
 
         var result = await sut.GetById(TestConstants.ValidTaskId, CancellationToken.None);
@@ -127,7 +125,7 @@ public sealed class TasksControllerTests
     }
 
     [Fact]
-    public async Task GetById_ShouldReturn400_WhenAccessDenied()
+    public async Task GetById_ShouldReturn401_WhenAccessDenied()
     {
         var commandService = new Mock<ITaskCommandService>();
         var queryService = new Mock<ITaskQueryService>();
@@ -135,12 +133,12 @@ public sealed class TasksControllerTests
         currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
         queryService
             .Setup(s => s.GetTaskByIdAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<TaskItem>.Fail(AccessDeniedError));
+            .ReturnsAsync(Result<TaskItem>.Fail("Access denied.", ResultErrorType.Unauthorized));
         var sut = BuildController(commandService, queryService, currentUser);
 
         var result = await sut.GetById(TestConstants.ValidTaskId, CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.IsType<UnauthorizedObjectResult>(result);
     }
 
     [Fact]
@@ -211,7 +209,7 @@ public sealed class TasksControllerTests
         var request = TestDataBuilder.ValidUpdateRequest();
         commandService
             .Setup(s => s.UpdateTaskAsync(TestConstants.ValidTaskId, request, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<TaskItem>.Fail(TaskNotFoundError));
+            .ReturnsAsync(Result<TaskItem>.Fail("Task was not found.", ResultErrorType.NotFound));
         var sut = BuildController(commandService, queryService, currentUser);
 
         var result = await sut.Update(TestConstants.ValidTaskId, request, CancellationToken.None);
@@ -263,7 +261,7 @@ public sealed class TasksControllerTests
         currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
         commandService
             .Setup(s => s.DeleteTaskAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail(TestConstants.NotFoundError));
+            .ReturnsAsync(Result.Fail("Task was not found.", ResultErrorType.NotFound));
         var sut = BuildController(commandService, queryService, currentUser);
 
         var result = await sut.Delete(TestConstants.ValidTaskId, CancellationToken.None);

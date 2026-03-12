@@ -23,7 +23,7 @@ public sealed class SqlUserRepository(IDbConnectionFactory connectionFactory) : 
         }
         catch (PostgresException ex) when (ex.SqlState == UserSql.DuplicateKeyViolation)
         {
-            return Result.Fail("An account with this email already exists.");
+            return Result.Fail("An account with this email already exists.", ResultErrorType.Conflict);
         }
     }
 

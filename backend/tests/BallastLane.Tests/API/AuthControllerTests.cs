@@ -47,7 +47,7 @@ public sealed class AuthControllerTests
         var request = new RegisterRequest(TestConstants.ValidEmail, TestConstants.ValidPassword);
         authService
             .Setup(s => s.RegisterAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<User>.Fail(AlreadyExistsError));
+            .ReturnsAsync(Result<User>.Fail(AlreadyExistsError, ResultErrorType.Conflict));
 
         var result = await sut.Register(request, CancellationToken.None);
 
@@ -91,7 +91,7 @@ public sealed class AuthControllerTests
         var request = new LoginRequest(TestConstants.ValidEmail, "wrong");
         authService
             .Setup(s => s.LoginAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<AuthResponse>.Fail(TestConstants.InvalidCredentialsMessage));
+            .ReturnsAsync(Result<AuthResponse>.Fail(TestConstants.InvalidCredentialsMessage, ResultErrorType.Unauthorized));
 
         var result = await sut.Login(request, CancellationToken.None);
 
@@ -119,7 +119,7 @@ public sealed class AuthControllerTests
         var (sut, authService) = BuildSut();
         authService
             .Setup(s => s.GetCurrentUserAsync(TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<UserProfileResponse>.Fail(TestConstants.NotFoundError));
+            .ReturnsAsync(Result<UserProfileResponse>.Fail("User not found.", ResultErrorType.NotFound));
 
         var result = await sut.Me(CancellationToken.None);
 

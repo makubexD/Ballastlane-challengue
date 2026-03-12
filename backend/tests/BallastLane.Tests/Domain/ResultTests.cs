@@ -15,6 +15,7 @@ public sealed class ResultTests
         Assert.False(result.IsFailure);
         Assert.Equal(expectedValue, result.Value);
         Assert.Empty(result.Errors);
+        Assert.Equal(ResultErrorType.None, result.ErrorType);
     }
 
     [Fact]
@@ -28,6 +29,7 @@ public sealed class ResultTests
         Assert.True(result.IsFailure);
         Assert.Single(result.Errors);
         Assert.Equal(expectedError, result.Errors[0]);
+        Assert.Equal(ResultErrorType.Validation, result.ErrorType);
     }
 
     [Fact]
@@ -40,6 +42,28 @@ public sealed class ResultTests
         Assert.False(result.IsSuccess);
         Assert.Equal(3, result.Errors.Count);
         Assert.Equal(errors, result.Errors);
+        Assert.Equal(ResultErrorType.Validation, result.ErrorType);
+    }
+
+    [Fact]
+    public void Result_Fail_ShouldUseProvidedErrorType()
+    {
+        var result = Result<string>.Fail("Resource not found.", ResultErrorType.NotFound);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.NotFound, result.ErrorType);
+    }
+
+    [Theory]
+    [InlineData(ResultErrorType.Validation)]
+    [InlineData(ResultErrorType.NotFound)]
+    [InlineData(ResultErrorType.Conflict)]
+    [InlineData(ResultErrorType.Unauthorized)]
+    public void Result_Fail_ShouldPreserveAllErrorTypes(ResultErrorType errorType)
+    {
+        var result = Result<string>.Fail("error", errorType);
+
+        Assert.Equal(errorType, result.ErrorType);
     }
 
     [Fact]
@@ -59,6 +83,7 @@ public sealed class ResultTests
         Assert.True(result.IsSuccess);
         Assert.False(result.IsFailure);
         Assert.Empty(result.Errors);
+        Assert.Equal(ResultErrorType.None, result.ErrorType);
     }
 
     [Fact]
@@ -71,5 +96,15 @@ public sealed class ResultTests
         Assert.False(result.IsSuccess);
         Assert.Single(result.Errors);
         Assert.Equal(expectedError, result.Errors[0]);
+        Assert.Equal(ResultErrorType.Validation, result.ErrorType);
+    }
+
+    [Fact]
+    public void NonGenericResult_Fail_ShouldUseProvidedErrorType()
+    {
+        var result = Result.Fail("Access denied.", ResultErrorType.Unauthorized);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.Unauthorized, result.ErrorType);
     }
 }
