@@ -1,3 +1,4 @@
+using BallastLane.Application.Common;
 using BallastLane.Application.DTOs;
 using BallastLane.Application.Events;
 using BallastLane.Application.Validators;
@@ -50,12 +51,20 @@ public sealed class TaskService(
         return Result<TaskItem>.Ok(task);
     }
 
-    public async Task<Result<IReadOnlyList<TaskItem>>> GetAllTasksAsync(
+    public async Task<Result<PagedResult<TaskItem>>> GetAllTasksAsync(
         Guid userId,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var tasks = await taskRepository.GetAllByUserIdAsync(userId, cancellationToken);
-        return Result<IReadOnlyList<TaskItem>>.Ok(tasks);
+        if (page < 1)
+            return Result<PagedResult<TaskItem>>.Fail("Page must be greater than or equal to 1.", ResultErrorType.Validation);
+
+        if (pageSize < 1 || pageSize > 100)
+            return Result<PagedResult<TaskItem>>.Fail("PageSize must be between 1 and 100.", ResultErrorType.Validation);
+
+        var (items, totalCount) = await taskRepository.GetPagedByUserIdAsync(userId, page, pageSize, cancellationToken);
+        return Result<PagedResult<TaskItem>>.Ok(new PagedResult<TaskItem>(items, totalCount, page, pageSize));
     }
 
     public async Task<Result<TaskItem>> UpdateTaskAsync(

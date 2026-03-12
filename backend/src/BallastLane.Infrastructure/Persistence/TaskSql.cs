@@ -30,6 +30,18 @@ internal static class TaskSql
 
     internal const string Delete = "DELETE FROM tasks WHERE id = @id;";
 
+    internal const string CountByUserId = """
+        SELECT COUNT(*) FROM tasks WHERE user_id = @user_id;
+        """;
+
+    internal const string SelectPagedByUserId = """
+        SELECT id, title, description, status, due_date, user_id, created_at, updated_at
+        FROM tasks
+        WHERE user_id = @user_id
+        ORDER BY created_at DESC
+        LIMIT @page_size OFFSET @offset;
+        """;
+
     internal const string ColId = "id";
     internal const string ColTitle = "title";
     internal const string ColDescription = "description";

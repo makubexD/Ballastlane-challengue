@@ -1,5 +1,6 @@
 using BallastLane.API.Controllers;
 using BallastLane.API.Services;
+using BallastLane.Application.Common;
 using BallastLane.Application.CQRS;
 using BallastLane.Application.Tasks.Commands;
 using BallastLane.Application.Tasks.Queries;
@@ -22,46 +23,49 @@ public sealed class TasksControllerTests
         Mock<ICurrentUserService> currentUser)
         => new(commandDispatcher.Object, queryDispatcher.Object, currentUser.Object);
 
+    // ── GetAll ──────────────────────────────────────────────────────────────
+
     [Fact]
-    public async Task GetAll_ShouldReturn200WithTasks_WhenUserHasTasks()
+    public async Task GetAll_ShouldReturn200WithPagedResult_WhenUserHasTasks()
     {
         var commandDispatcher = new Mock<ICommandDispatcher>();
         var queryDispatcher = new Mock<IQueryDispatcher>();
         var currentUser = new Mock<ICurrentUserService>();
         currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
-        var tasks = (IReadOnlyList<TaskItem>)[TestDataBuilder.ValidTask()];
+        var paged = new PagedResult<TaskItem>([TestDataBuilder.ValidTask()], 1, 1, 20);
         queryDispatcher
-            .Setup(d => d.SendAsync<GetAllTasksQuery, IReadOnlyList<TaskItem>>(
-                It.Is<GetAllTasksQuery>(q => q.UserId == TestConstants.ValidUserId),
+            .Setup(d => d.SendAsync<GetAllTasksQuery, PagedResult<TaskItem>>(
+                It.Is<GetAllTasksQuery>(q => q.UserId == TestConstants.ValidUserId && q.Page == 1 && q.PageSize == 20),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<IReadOnlyList<TaskItem>>.Ok(tasks));
+            .ReturnsAsync(Result<PagedResult<TaskItem>>.Ok(paged));
         var sut = BuildController(commandDispatcher, queryDispatcher, currentUser);
 
-        var result = await sut.GetAll(CancellationToken.None);
+        var result = await sut.GetAll(1, 20, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(tasks, ok.Value);
+        Assert.Equal(paged, ok.Value);
     }
 
     [Fact]
-    public async Task GetAll_ShouldReturn200WithEmptyList_WhenUserHasNoTasks()
+    public async Task GetAll_ShouldReturn200WithEmptyPagedResult_WhenUserHasNoTasks()
     {
         var commandDispatcher = new Mock<ICommandDispatcher>();
         var queryDispatcher = new Mock<IQueryDispatcher>();
         var currentUser = new Mock<ICurrentUserService>();
         currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
-        IReadOnlyList<TaskItem> emptyList = [];
+        var paged = new PagedResult<TaskItem>([], 0, 1, 20);
         queryDispatcher
-            .Setup(d => d.SendAsync<GetAllTasksQuery, IReadOnlyList<TaskItem>>(
+            .Setup(d => d.SendAsync<GetAllTasksQuery, PagedResult<TaskItem>>(
                 It.IsAny<GetAllTasksQuery>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<IReadOnlyList<TaskItem>>.Ok(emptyList));
+            .ReturnsAsync(Result<PagedResult<TaskItem>>.Ok(paged));
         var sut = BuildController(commandDispatcher, queryDispatcher, currentUser);
 
-        var result = await sut.GetAll(CancellationToken.None);
+        var result = await sut.GetAll(1, 20, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(emptyList, ok.Value);
+        var returned = Assert.IsType<PagedResult<TaskItem>>(ok.Value);
+        Assert.Empty(returned.Items);
     }
 
     [Fact]
@@ -71,18 +75,18 @@ public sealed class TasksControllerTests
         var queryDispatcher = new Mock<IQueryDispatcher>();
         var currentUser = new Mock<ICurrentUserService>();
         currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
-        IReadOnlyList<TaskItem> tasks = [TestDataBuilder.ValidTask()];
+        var paged = new PagedResult<TaskItem>([TestDataBuilder.ValidTask()], 1, 1, 20);
         queryDispatcher
-            .Setup(d => d.SendAsync<GetAllTasksQuery, IReadOnlyList<TaskItem>>(
+            .Setup(d => d.SendAsync<GetAllTasksQuery, PagedResult<TaskItem>>(
                 It.IsAny<GetAllTasksQuery>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<IReadOnlyList<TaskItem>>.Ok(tasks));
+            .ReturnsAsync(Result<PagedResult<TaskItem>>.Ok(paged));
         var sut = BuildController(commandDispatcher, queryDispatcher, currentUser);
 
-        await sut.GetAll(CancellationToken.None);
+        await sut.GetAll(1, 20, CancellationToken.None);
 
         queryDispatcher.Verify(
-            d => d.SendAsync<GetAllTasksQuery, IReadOnlyList<TaskItem>>(
+            d => d.SendAsync<GetAllTasksQuery, PagedResult<TaskItem>>(
                 It.IsAny<GetAllTasksQuery>(),
                 It.IsAny<CancellationToken>()),
             Times.Once());
@@ -92,6 +96,27 @@ public sealed class TasksControllerTests
                 It.IsAny<CancellationToken>()),
             Times.Never());
     }
+
+    [Fact]
+    public async Task GetAll_ShouldReturn400_WhenPageParamsAreInvalid()
+    {
+        var commandDispatcher = new Mock<ICommandDispatcher>();
+        var queryDispatcher = new Mock<IQueryDispatcher>();
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
+        queryDispatcher
+            .Setup(d => d.SendAsync<GetAllTasksQuery, PagedResult<TaskItem>>(
+                It.IsAny<GetAllTasksQuery>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<PagedResult<TaskItem>>.Fail("Page must be greater than or equal to 1.", ResultErrorType.Validation));
+        var sut = BuildController(commandDispatcher, queryDispatcher, currentUser);
+
+        var result = await sut.GetAll(0, 20, CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    // ── GetById ─────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task GetById_ShouldReturn200WithTask_WhenTaskExists()
@@ -152,6 +177,8 @@ public sealed class TasksControllerTests
         Assert.IsType<UnauthorizedObjectResult>(result);
     }
 
+    // ── Create ──────────────────────────────────────────────────────────────
+
     [Fact]
     public async Task Create_ShouldReturn201WithTask_WhenRequestIsValid()
     {
@@ -195,6 +222,8 @@ public sealed class TasksControllerTests
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
+
+    // ── Update ──────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task Update_ShouldReturn200WithUpdatedTask_WhenRequestIsValid()
@@ -260,6 +289,8 @@ public sealed class TasksControllerTests
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
+
+    // ── Delete ──────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task Delete_ShouldReturn204_WhenTaskDeleted()

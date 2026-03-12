@@ -42,6 +42,27 @@ internal sealed class TransactionalTaskRepository(
         return tasks;
     }
 
+    public async Task<(IReadOnlyList<TaskItem> Items, int TotalCount)> GetPagedByUserIdAsync(
+        Guid userId, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        await using var countCommand = new NpgsqlCommand(TaskSql.CountByUserId, connection, transaction);
+        countCommand.Parameters.AddWithValue("@user_id", userId);
+        var totalCount = Convert.ToInt32(await countCommand.ExecuteScalarAsync(cancellationToken));
+
+        var offset = (page - 1) * pageSize;
+        await using var selectCommand = new NpgsqlCommand(TaskSql.SelectPagedByUserId, connection, transaction);
+        selectCommand.Parameters.AddWithValue("@user_id", userId);
+        selectCommand.Parameters.AddWithValue("@page_size", pageSize);
+        selectCommand.Parameters.AddWithValue("@offset", offset);
+
+        await using var reader = await selectCommand.ExecuteReaderAsync(cancellationToken);
+        var items = new List<TaskItem>();
+        while (await reader.ReadAsync(cancellationToken))
+            items.Add(TaskSql.MapToTask(reader));
+
+        return (items, totalCount);
+    }
+
     public async Task UpdateAsync(TaskItem task, CancellationToken cancellationToken = default)
     {
         await using var command = new NpgsqlCommand(TaskSql.Update, connection, transaction);

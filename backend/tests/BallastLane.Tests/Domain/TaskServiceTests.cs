@@ -258,20 +258,21 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         var (sut, repo, _, _) = BuildSut(clock);
-        var userTasks = new List<TaskItem>
-        {
+        IReadOnlyList<TaskItem> userTasks =
+        [
             TestDataBuilder.ValidTask(id: TestConstants.ValidTaskId, userId: TestConstants.ValidUserId),
             TestDataBuilder.ValidTask(id: Guid.NewGuid(), userId: TestConstants.ValidUserId)
-        };
+        ];
         repo
-            .Setup(r => r.GetAllByUserIdAsync(TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(userTasks);
+            .Setup(r => r.GetPagedByUserIdAsync(TestConstants.ValidUserId, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((userTasks, 2));
 
-        var result = await sut.GetAllTasksAsync(TestConstants.ValidUserId);
+        var result = await sut.GetAllTasksAsync(TestConstants.ValidUserId, 1, 20);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, result.Value.Count);
-        Assert.All(result.Value, t => Assert.Equal(TestConstants.ValidUserId, t.UserId));
+        Assert.Equal(2, result.Value.TotalCount);
+        Assert.Equal(2, result.Value.Items.Count);
+        Assert.All(result.Value.Items, t => Assert.Equal(TestConstants.ValidUserId, t.UserId));
     }
 
     [Fact]
