@@ -19,7 +19,7 @@ public sealed class TaskValidator
         if (string.IsNullOrWhiteSpace(request.Description))
             errors.Add("Description is required.");
 
-        if (request.DueDate <= utcNow)
+        if (request.DueDate.Date <= utcNow.Date)
             errors.Add("Due date must be in the future.");
 
         return errors;
@@ -37,7 +37,7 @@ public sealed class TaskValidator
         if (string.IsNullOrWhiteSpace(request.Description))
             errors.Add("Description is required.");
 
-        if (request.DueDate <= utcNow)
+        if (request.DueDate.Date <= utcNow.Date)
             errors.Add("Due date must be in the future.");
 
         return errors;

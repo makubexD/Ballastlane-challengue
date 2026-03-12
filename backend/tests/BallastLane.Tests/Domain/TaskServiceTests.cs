@@ -90,6 +90,23 @@ public sealed class TaskServiceTests
     }
 
     [Fact]
+    public async Task CreateTask_ShouldReturnFailure_WhenDueDateIsLaterTodayNotTomorrow()
+    {
+        var repository = new Mock<ITaskRepository>();
+        var clock = new Mock<IDateTimeProvider>();
+        clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
+        var sut = new TaskService(repository.Object, new TaskValidator(), clock.Object);
+        // DueDate = same UTC date as now but 3 hours later (today, not a future calendar day)
+        var request = TestDataBuilder.ValidCreateRequest(
+            dueDate: TestConstants.FixedUtcNow.AddHours(3));
+
+        var result = await sut.CreateTaskAsync(request, TestConstants.ValidUserId);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains(result.Errors, e => e.Contains("Due date must be in the future"));
+    }
+
+    [Fact]
     public async Task CreateTask_ShouldReturnFailure_WhenDescriptionIsEmpty()
     {
         var repository = new Mock<ITaskRepository>();
