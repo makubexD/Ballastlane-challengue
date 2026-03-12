@@ -28,7 +28,7 @@ public sealed class AuthControllerTests
     public async Task Register_ShouldReturn201_WhenEmailIsUniqueAndCredentialsAreValid()
     {
         var (sut, authService) = BuildSut();
-        var user = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, "hash");
+        var user = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, "hash", TestConstants.FixedUtcNow);
         var request = new RegisterRequest(TestConstants.ValidEmail, TestConstants.ValidPassword);
         authService
             .Setup(s => s.RegisterAsync(request, It.IsAny<CancellationToken>()))

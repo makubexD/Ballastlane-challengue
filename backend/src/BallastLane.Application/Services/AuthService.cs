@@ -30,7 +30,7 @@ public sealed class AuthService(
             return Result<User>.Fail("An account with this email already exists.");
 
         var hash = passwordHasher.Hash(request.Password);
-        var user = User.Create(Guid.NewGuid(), request.Email, hash);
+        var user = User.Create(Guid.NewGuid(), request.Email, hash, clock.UtcNow);
         var saveResult = await userRepository.SaveAsync(user, cancellationToken);
 
         if (!saveResult.IsSuccess)

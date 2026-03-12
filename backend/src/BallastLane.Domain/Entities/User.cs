@@ -7,11 +7,11 @@ public sealed class User
     public string PasswordHash { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; }
 
-    public static User Create(Guid id, string email, string passwordHash) => new()
+    public static User Create(Guid id, string email, string passwordHash, DateTime createdAt) => new()
     {
         Id = id,
         Email = email.ToLowerInvariant(),
         PasswordHash = passwordHash,
-        CreatedAt = DateTime.UtcNow
+        CreatedAt = createdAt
     };
 }
