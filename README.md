@@ -94,23 +94,28 @@ Three demo tasks (Todo / InProgress / Done) are pre-loaded for the demo user.
 ```bash
 cd backend
 
-# Unit + integration tests
-dotnet test
+# Unit tests only — no database required (default)
+dotnet test --settings unit-tests.runsettings
 
-# With coverage report
-dotnet test --collect:"XPlat Code Coverage"
+# With coverage report (unit tests only)
+dotnet test --settings unit-tests.runsettings --collect:"XPlat Code Coverage"
 
 # Single test class
 dotnet test --filter "FullyQualifiedName~TaskServiceTests"
+
+# All tests including integration (requires test DB — see below)
+dotnet test
 ```
 
-Integration tests require the test database:
+Integration tests are tagged `[Trait("Category", "Integration")]` and require a running test database:
 
 ```bash
 docker-compose -f docker-compose.test.yml up -d
+dotnet test --filter "Category=Integration"
 ```
 
-Connection string is read from environment (`TEST_DB_HOST`, `TEST_DB_PORT`, etc.) — see `.env.example`.
+Connection string is read from the `TEST_DB_CONNECTION` environment variable, or falls back to
+`Host=localhost;Port=5433;Database=ballastlane_test;Username=ballastlane_test;Password=ballastlane_test`.
 
 ### Frontend
 

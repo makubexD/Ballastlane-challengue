@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <!-- Exclude integration tests that require a live PostgreSQL database on port 5433 -->
+    <TestCaseFilter>Category!=Integration</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>
