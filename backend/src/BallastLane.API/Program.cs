@@ -59,7 +59,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                if (ctx.Request.Cookies.TryGetValue("access_token", out var token))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
+        };
     });
+
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "XSRF-TOKEN";
+    options.Cookie.HttpOnly = false;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+});
+
+var isDevelopment = builder.Environment.IsDevelopment();
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    options.MinimumSameSitePolicy = isDevelopment ? SameSiteMode.Lax : SameSiteMode.Strict;
+    options.Secure = isDevelopment ? CookieSecurePolicy.None : CookieSecurePolicy.Always;
+});
 
 builder.Services.AddAuthorization();
 builder.Services.AddProblemDetails();
@@ -107,7 +131,8 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
         policy.WithOrigins(corsSettings.AllowedOrigins)
               .AllowAnyMethod()
-              .AllowAnyHeader()));
+              .AllowAnyHeader()
+              .AllowCredentials()));
 
 var app = builder.Build();
 
@@ -133,8 +158,10 @@ app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseCors();
 app.UseSerilogRequestLogging();
 app.UseRateLimiter();
+app.UseCookiePolicy();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 app.MapControllers();
 
 app.MapHealthChecks("/healthz/live", new HealthCheckOptions

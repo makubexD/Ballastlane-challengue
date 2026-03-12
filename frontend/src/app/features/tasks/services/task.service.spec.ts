@@ -21,12 +21,20 @@ describe('TaskService', () => {
     httpMock.verify();
   });
 
-  it('getAll() — should fetch /api/tasks and populate tasks signal', () => {
+  it('getAll() — should fetch /api/tasks with page params and populate tasks signal', () => {
     service.getAll();
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=20`);
     expect(req.request.method).toBe('GET');
-    req.flush(FIXTURE_TASKS);
+    req.flush({
+      items: FIXTURE_TASKS,
+      totalCount: FIXTURE_TASKS.length,
+      page: 1,
+      pageSize: 20,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false
+    });
 
     expect(service.tasks()).toEqual(FIXTURE_TASKS);
     expect(service.isLoading()).toBe(false);
