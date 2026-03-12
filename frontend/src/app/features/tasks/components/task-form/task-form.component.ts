@@ -13,10 +13,8 @@ import { Task, CreateTaskRequest, UpdateTaskRequest } from '../../services/task.
 
 function futureDateValidator(control: AbstractControl): ValidationErrors | null {
   if (!control.value) return null;
-  const date = new Date(control.value);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  if (date <= now) {
+  const todayUtc = new Date().toISOString().substring(0, 10);
+  if (control.value <= todayUtc) {
     return { futureDate: true };
   }
   return null;
@@ -165,7 +163,7 @@ export class TaskFormComponent implements OnChanges {
       title: value.title!,
       description: value.description!,
       status: value.status as 'Todo' | 'InProgress' | 'Done',
-      dueDate: new Date(value.dueDate!).toISOString()
+      dueDate: value.dueDate! + 'T12:00:00Z'
     };
 
     this.formSubmit.emit(request);
