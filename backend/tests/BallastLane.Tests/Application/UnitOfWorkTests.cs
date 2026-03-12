@@ -1,6 +1,6 @@
 using BallastLane.Application.Services;
 using BallastLane.Application.Validators;
-using BallastLane.Domain.Entities;
+using BallastLane.Domain.Events;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Tests.TestData;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,8 +17,9 @@ public sealed class UnitOfWorkTests
         var taskRepo = new Mock<ITaskRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var clock = new Mock<IDateTimeProvider>();
+        var dispatcher = new Mock<IDomainEventDispatcher>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
+        var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance, dispatcher.Object);
         var request = TestDataBuilder.ValidCreateRequest();
 
         // Act
@@ -36,8 +37,9 @@ public sealed class UnitOfWorkTests
         var taskRepo = new Mock<ITaskRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var clock = new Mock<IDateTimeProvider>();
+        var dispatcher = new Mock<IDomainEventDispatcher>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
+        var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance, dispatcher.Object);
         var invalidRequest = TestDataBuilder.ValidCreateRequest(title: string.Empty);
 
         // Act
@@ -55,13 +57,14 @@ public sealed class UnitOfWorkTests
         var taskRepo = new Mock<ITaskRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var clock = new Mock<IDateTimeProvider>();
+        var dispatcher = new Mock<IDomainEventDispatcher>();
         var existingTask = TestDataBuilder.ValidTask(
             id: TestConstants.ValidTaskId,
             userId: TestConstants.ValidUserId);
         taskRepo
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingTask);
-        var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
+        var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance, dispatcher.Object);
 
         // Act
         var result = await sut.DeleteTaskAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId);

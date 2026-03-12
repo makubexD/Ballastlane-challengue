@@ -1,7 +1,9 @@
+using BallastLane.Application.Events;
 using BallastLane.Application.Services;
 using BallastLane.Application.Validators;
 using BallastLane.Domain.Common;
 using BallastLane.Domain.Entities;
+using BallastLane.Domain.Events;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Tests.TestData;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,13 +13,14 @@ namespace BallastLane.Tests.Domain;
 
 public sealed class TaskServiceTests
 {
-    private static (TaskService Sut, Mock<ITaskRepository> Repo, Mock<IUnitOfWork> Uow) BuildSut(
+    private static (TaskService Sut, Mock<ITaskRepository> Repo, Mock<IUnitOfWork> Uow, Mock<IDomainEventDispatcher> Dispatcher) BuildSut(
         Mock<IDateTimeProvider> clock)
     {
         var repo = new Mock<ITaskRepository>();
         var uow = new Mock<IUnitOfWork>();
-        var sut = new TaskService(repo.Object, uow.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
-        return (sut, repo, uow);
+        var dispatcher = new Mock<IDomainEventDispatcher>();
+        var sut = new TaskService(repo.Object, uow.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance, dispatcher.Object);
+        return (sut, repo, uow, dispatcher);
     }
 
     [Fact]
@@ -25,7 +28,7 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var (sut, _, _) = BuildSut(clock);
+        var (sut, _, _, _) = BuildSut(clock);
         var request = TestDataBuilder.ValidCreateRequest();
 
         var result = await sut.CreateTaskAsync(request, TestConstants.ValidUserId);
@@ -41,7 +44,7 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var (sut, repo, _) = BuildSut(clock);
+        var (sut, repo, _, _) = BuildSut(clock);
         var request = TestDataBuilder.ValidCreateRequest();
 
         await sut.CreateTaskAsync(request, TestConstants.ValidUserId);
@@ -58,7 +61,7 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var (sut, _, _) = BuildSut(clock);
+        var (sut, _, _, _) = BuildSut(clock);
         var request = TestDataBuilder.ValidCreateRequest(title: string.Empty);
 
         var result = await sut.CreateTaskAsync(request, TestConstants.ValidUserId);
@@ -72,7 +75,7 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var (sut, _, _) = BuildSut(clock);
+        var (sut, _, _, _) = BuildSut(clock);
         var request = TestDataBuilder.ValidCreateRequest(title: TestConstants.LongTitle);
 
         var result = await sut.CreateTaskAsync(request, TestConstants.ValidUserId);
@@ -86,7 +89,7 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var (sut, _, _) = BuildSut(clock);
+        var (sut, _, _, _) = BuildSut(clock);
         var request = TestDataBuilder.ValidCreateRequest(dueDate: TestConstants.PastDueDate);
 
         var result = await sut.CreateTaskAsync(request, TestConstants.ValidUserId);
@@ -100,7 +103,7 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var (sut, _, _) = BuildSut(clock);
+        var (sut, _, _, _) = BuildSut(clock);
         // DueDate = same UTC date as now but 3 hours later (today, not a future calendar day)
         var request = TestDataBuilder.ValidCreateRequest(
             dueDate: TestConstants.FixedUtcNow.AddHours(3));
@@ -116,7 +119,7 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var (sut, _, _) = BuildSut(clock);
+        var (sut, _, _, _) = BuildSut(clock);
         var request = TestDataBuilder.ValidCreateRequest(description: string.Empty);
 
         var result = await sut.CreateTaskAsync(request, TestConstants.ValidUserId);
@@ -129,7 +132,7 @@ public sealed class TaskServiceTests
     public async Task GetTaskById_ShouldReturnTask_WhenTaskBelongsToRequestingUser()
     {
         var clock = new Mock<IDateTimeProvider>();
-        var (sut, repo, _) = BuildSut(clock);
+        var (sut, repo, _, _) = BuildSut(clock);
         var existingTask = TestDataBuilder.ValidTask(id: TestConstants.ValidTaskId, userId: TestConstants.ValidUserId);
         repo
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
@@ -145,7 +148,7 @@ public sealed class TaskServiceTests
     public async Task GetTaskById_ShouldReturnFailure_WhenTaskDoesNotExist()
     {
         var clock = new Mock<IDateTimeProvider>();
-        var (sut, repo, _) = BuildSut(clock);
+        var (sut, repo, _, _) = BuildSut(clock);
         repo
             .Setup(r => r.GetByIdAsync(TestConstants.UnknownTaskId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((TaskItem?)null);
@@ -161,7 +164,7 @@ public sealed class TaskServiceTests
     public async Task GetTaskById_ShouldReturnFailure_WhenTaskBelongsToDifferentUser()
     {
         var clock = new Mock<IDateTimeProvider>();
-        var (sut, repo, _) = BuildSut(clock);
+        var (sut, repo, _, _) = BuildSut(clock);
         var taskOwnedByOther = TestDataBuilder.ValidTask(id: TestConstants.ValidTaskId, userId: TestConstants.OtherUserId);
         repo
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
@@ -179,7 +182,7 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var (sut, repo, _) = BuildSut(clock);
+        var (sut, repo, _, _) = BuildSut(clock);
         var existingTask = TestDataBuilder.ValidTask(id: TestConstants.ValidTaskId, userId: TestConstants.ValidUserId);
         repo
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
@@ -203,7 +206,7 @@ public sealed class TaskServiceTests
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var (sut, repo, _) = BuildSut(clock);
+        var (sut, repo, _, _) = BuildSut(clock);
         repo
             .Setup(r => r.GetByIdAsync(TestConstants.UnknownTaskId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((TaskItem?)null);
@@ -220,7 +223,7 @@ public sealed class TaskServiceTests
     public async Task DeleteTask_ShouldSucceed_WhenTaskBelongsToUser()
     {
         var clock = new Mock<IDateTimeProvider>();
-        var (sut, repo, _) = BuildSut(clock);
+        var (sut, repo, _, _) = BuildSut(clock);
         var existingTask = TestDataBuilder.ValidTask(id: TestConstants.ValidTaskId, userId: TestConstants.ValidUserId);
         repo
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
@@ -238,7 +241,7 @@ public sealed class TaskServiceTests
     public async Task DeleteTask_ShouldReturnFailure_WhenTaskNotFound()
     {
         var clock = new Mock<IDateTimeProvider>();
-        var (sut, repo, _) = BuildSut(clock);
+        var (sut, repo, _, _) = BuildSut(clock);
         repo
             .Setup(r => r.GetByIdAsync(TestConstants.UnknownTaskId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((TaskItem?)null);
@@ -254,7 +257,7 @@ public sealed class TaskServiceTests
     public async Task GetAllTasks_ShouldReturnOnlyTasksOwnedByUser()
     {
         var clock = new Mock<IDateTimeProvider>();
-        var (sut, repo, _) = BuildSut(clock);
+        var (sut, repo, _, _) = BuildSut(clock);
         var userTasks = new List<TaskItem>
         {
             TestDataBuilder.ValidTask(id: TestConstants.ValidTaskId, userId: TestConstants.ValidUserId),
@@ -269,5 +272,42 @@ public sealed class TaskServiceTests
         Assert.True(result.IsSuccess);
         Assert.Equal(2, result.Value.Count);
         Assert.All(result.Value, t => Assert.Equal(TestConstants.ValidUserId, t.UserId));
+    }
+
+    [Fact]
+    public async Task CreateTask_ShouldDispatchTaskCreatedEvent_WhenTaskIsCreatedSuccessfully()
+    {
+        var clock = new Mock<IDateTimeProvider>();
+        clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
+        var (sut, _, _, dispatcher) = BuildSut(clock);
+        var request = TestDataBuilder.ValidCreateRequest();
+
+        await sut.CreateTaskAsync(request, TestConstants.ValidUserId);
+
+        dispatcher.Verify(
+            d => d.DispatchAsync(
+                It.Is<TaskCreatedEvent>(e => e.UserId == TestConstants.ValidUserId && e.Title == TestConstants.ValidTitle),
+                It.IsAny<CancellationToken>()),
+            Times.Once());
+    }
+
+    [Fact]
+    public async Task DeleteTask_ShouldDispatchTaskDeletedEvent_WhenTaskIsDeletedSuccessfully()
+    {
+        var clock = new Mock<IDateTimeProvider>();
+        clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
+        var (sut, repo, _, dispatcher) = BuildSut(clock);
+        var existingTask = TestDataBuilder.ValidTask(id: TestConstants.ValidTaskId, userId: TestConstants.ValidUserId);
+        repo
+            .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingTask);
+
+        await sut.DeleteTaskAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId);
+
+        dispatcher.Verify(
+            d => d.DispatchAsync(
+                It.Is<TaskDeletedEvent>(e => e.TaskId == TestConstants.ValidTaskId && e.UserId == TestConstants.ValidUserId),
+                It.IsAny<CancellationToken>()),
+            Times.Once());
     }
 }

@@ -1,7 +1,9 @@
 using BallastLane.Application.DTOs;
+using BallastLane.Application.Events;
 using BallastLane.Application.Validators;
 using BallastLane.Domain.Common;
 using BallastLane.Domain.Entities;
+using BallastLane.Domain.Events;
 using BallastLane.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +14,8 @@ public sealed class TaskService(
     IUnitOfWork unitOfWork,
     TaskValidator validator,
     IDateTimeProvider clock,
-    ILogger<TaskService> logger) : ITaskCommandService, ITaskQueryService
+    ILogger<TaskService> logger,
+    IDomainEventDispatcher eventDispatcher) : ITaskCommandService, ITaskQueryService
 {
     public async Task<Result<TaskItem>> CreateTaskAsync(
         CreateTaskRequest request,
@@ -27,6 +30,7 @@ public sealed class TaskService(
         await taskRepository.SaveAsync(task, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
         logger.LogInformation("Task created: {TaskId} for user {UserId}", task.Id, userId);
+        await eventDispatcher.DispatchAsync(new TaskCreatedEvent(task.Id, userId, task.Title, clock.UtcNow), cancellationToken);
         return Result<TaskItem>.Ok(task);
     }
 
@@ -92,6 +96,7 @@ public sealed class TaskService(
         await taskRepository.DeleteAsync(id, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
         logger.LogInformation("Task deleted: {TaskId} by user {UserId}", id, requestingUserId);
+        await eventDispatcher.DispatchAsync(new TaskDeletedEvent(id, requestingUserId, clock.UtcNow), cancellationToken);
         return Result.Ok();
     }
 }
