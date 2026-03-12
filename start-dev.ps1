@@ -576,6 +576,7 @@ $frontendDir  = Join-Path $Root 'frontend'
     $backendCmd = "Set-Location '$backendDir'; " +
         "`$env:ASPNETCORE_ENVIRONMENT = 'Development'; " +
         "`$env:ConnectionStrings__Database = '$connStr'; " +
+        "`$env:JWT_SECRET = '$($env['JWT_SECRET'])'; " +
         "Write-Host 'Starting backend...' -ForegroundColor Cyan; " +
         "dotnet run --project src/BallastLane.API --no-build --no-launch-profile --urls http://localhost:5000"
     $backendProc = Start-Process powershell `

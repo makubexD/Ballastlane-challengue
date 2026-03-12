@@ -99,6 +99,7 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseMiddleware<UnitOfWorkMiddleware>();
 app.UseCors();
+app.UseSerilogRequestLogging();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

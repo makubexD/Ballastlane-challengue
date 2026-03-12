@@ -65,6 +65,20 @@ export class AuthService {
   }
 
   private loadToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    const token = localStorage.getItem(this.tokenKey);
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return token;
+    try {
+      const payload = JSON.parse(atob(parts[1]));
+      if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem(this.tokenKey);
+        return null;
+      }
+      return token;
+    } catch {
+      localStorage.removeItem(this.tokenKey);
+      return null;
+    }
   }
 }
