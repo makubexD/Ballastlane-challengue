@@ -27,6 +27,16 @@ export interface UpdateTaskRequest {
   dueDate: string;
 }
 
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TaskService {
   private readonly http = inject(HttpClient);
@@ -35,11 +45,11 @@ export class TaskService {
   readonly tasks = signal<Task[]>([]);
   readonly isLoading = signal<boolean>(false);
 
-  getAll(): void {
+  getAll(page = 1, pageSize = 20): void {
     this.isLoading.set(true);
-    this.http.get<Task[]>(this.apiUrl).subscribe({
-      next: (tasks) => {
-        this.tasks.set(tasks);
+    this.http.get<PagedResult<Task>>(`${this.apiUrl}?page=${page}&pageSize=${pageSize}`).subscribe({
+      next: (result) => {
+        this.tasks.set(result.items);
         this.isLoading.set(false);
       },
       error: () => {

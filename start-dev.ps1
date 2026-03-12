@@ -612,7 +612,7 @@ $frontendDir  = Join-Path $Root 'frontend'
             exit 1
         }
         try {
-            $r = Invoke-WebRequest -Uri 'http://localhost:5000/api/public/ping' `
+            $r = Invoke-WebRequest -Uri 'http://localhost:5000/healthz/live' `
                 -UseBasicParsing -TimeoutSec 1 -ErrorAction Stop
             if ($r.StatusCode -lt 400) { $apiReady = $true; break }
         } catch {}
