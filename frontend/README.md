@@ -1,59 +1,155 @@
-# Frontend
+# BallastLane — Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.5.
+Angular 20 single-page application for task management. Built with standalone components, Signals, TailwindCSS 4, and vitest 4. Zoneless by default — no zone.js.
 
-## Development server
+---
 
-To start a local development server, run:
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| Framework | Angular 20 (standalone, zoneless) |
+| Language | TypeScript 5.9 (strict) |
+| State | Angular Signals (`signal`, `computed`) |
+| Styling | TailwindCSS 4 (CSS-first configuration) |
+| Testing | vitest 4 + Angular TestBed |
+| HTTP | Angular `HttpClient` with `HttpInterceptorFn` |
+
+---
+
+## Prerequisites
+
+| Tool | Version |
+|---|---|
+| Node.js | 22 LTS |
+| Angular CLI | 20.x (`npm i -g @angular/cli`) |
+
+---
+
+## Setup & Run
 
 ```bash
+npm install
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+App is available at `http://localhost:4200`.
 
-## Code scaffolding
+The backend API must be running on `http://localhost:5000` — see [../backend/README.md](../backend/README.md).
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+---
 
-```bash
-ng generate component component-name
+## Project Structure
+
+```
+src/app/
+├── core/
+│   └── auth/
+│       ├── auth.service.ts       # Signals: _token, isAuthenticated, currentUser
+│       ├── auth.guard.ts         # Functional CanActivateFn — redirects to /login
+│       └── auth.interceptor.ts   # HttpInterceptorFn — attaches Bearer token
+├── shared/
+│   └── ui/
+│       ├── badge.component.ts    # Color-coded status badge (Todo/InProgress/Done)
+│       ├── spinner.component.ts  # Animated loading indicator
+│       └── empty-state.component.ts  # Empty list placeholder with action button
+├── features/
+│   ├── auth/
+│   │   ├── login/                # LoginComponent — reactive form, isSubmitting signal
+│   │   └── register/             # RegisterComponent — password strength validator
+│   └── tasks/
+│       ├── services/
+│       │   └── task.service.ts   # Signals: tasks[], isLoading. CRUD + optimistic delete
+│       ├── components/
+│       │   ├── task-list/        # Orchestrates list, form, empty state, spinner
+│       │   ├── task-card/        # Individual task display with edit/delete actions
+│       │   └── task-form/        # Reactive form for create and edit modes
+│       └── tasks.routes.ts
+├── __fixtures__/
+│   └── task.fixtures.ts          # Typed test data
+├── app.routes.ts                 # / → /tasks, lazy-loaded with authGuard
+├── app.config.ts                 # provideZonelessChangeDetection, HTTP client
+└── app.html                      # <router-outlet />
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+---
 
-```bash
-ng generate --help
+## Authentication Flow
+
+1. User submits credentials on `/login` → `AuthService.login()` calls `POST /api/auth/login`
+2. JWT token stored in `localStorage` and a `signal<string | null>()`
+3. `isAuthenticated = computed(() => _token() !== null)` drives the UI reactively
+4. `authInterceptor` attaches `Authorization: Bearer {token}` to every outgoing API request
+5. `authGuard` protects `/tasks` — unauthenticated users are redirected to `/login`
+6. `AuthService.logout()` clears localStorage and resets the signal
+
+---
+
+## State Management
+
+All shared and component state uses Angular Signals:
+
+```typescript
+// Service-level state
+tasks = signal<Task[]>([]);
+isLoading = signal<boolean>(false);
+
+// Derived state
+isAuthenticated = computed(() => this._token() !== null);
+
+// Component-level state
+showForm = signal(false);
+editingTask = signal<Task | null>(null);
 ```
 
-## Building
+Every component uses `ChangeDetectionStrategy.OnPush`. No RxJS state stores, no `BehaviorSubject` for state management.
 
-To build the project run:
+---
 
-```bash
-ng build
+## TailwindCSS 4
+
+CSS-first configuration — no `tailwind.config.js` for theming:
+
+```css
+/* styles.css */
+@import "tailwindcss";
+
+/* Custom theme via @theme directive */
+@theme {
+  --color-primary: ...;
+}
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+PostCSS plugin: `@tailwindcss/postcss` (configured in `.postcssrc.json`). Do not use the legacy `tailwind` plugin.
 
-## Running unit tests
+---
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+## Running Tests
 
 ```bash
-ng e2e
+# Run all 29 tests
+npx vitest run
+
+# With V8 coverage report
+npx vitest run --coverage
+
+# Watch mode (re-runs on file change)
+npx vitest
+
+# Type check only (strict, 0 errors required)
+npx tsc --noEmit
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Tests use `TestBed.configureTestingModule()`, `data-testid` selectors, and native async/await (no `fakeAsync`/`tick`). HTTP calls are mocked with `HttpClientTestingModule` + `HttpTestingController`.
 
-## Additional Resources
+---
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Environment
+
+API base URL is configured in `src/environments/environment.ts`:
+
+```typescript
+export const environment = {
+  apiUrl: 'http://localhost:5000'
+};
+```
