@@ -5,6 +5,7 @@ using BallastLane.Domain.Common;
 using BallastLane.Domain.Entities;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Tests.TestData;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace BallastLane.Tests.Domain;
@@ -27,7 +28,7 @@ public sealed class AuthServiceTests
         userRepository
             .Setup(r => r.SaveAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok());
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
         var request = new RegisterRequest(TestConstants.ValidEmail, TestConstants.ValidPassword);
 
         var result = await sut.RegisterAsync(request);
@@ -58,7 +59,7 @@ public sealed class AuthServiceTests
         userRepository
             .Setup(r => r.SaveAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok());
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
         var request = new RegisterRequest(TestConstants.ValidEmail, TestConstants.ValidPassword);
 
         var result = await sut.RegisterAsync(request);
@@ -78,7 +79,7 @@ public sealed class AuthServiceTests
         userRepository
             .Setup(r => r.FindByEmailAsync(TestConstants.ValidEmail, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingUser);
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
         var request = new RegisterRequest(TestConstants.ValidEmail, TestConstants.ValidPassword);
 
         var result = await sut.RegisterAsync(request);
@@ -97,7 +98,7 @@ public sealed class AuthServiceTests
         var passwordHasher = new Mock<IPasswordHasher>();
         var jwtProvider = new Mock<IJwtProvider>();
         var clock = new Mock<IDateTimeProvider>();
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
         var request = new RegisterRequest(TestConstants.ValidEmail, "Ab1");
 
         var result = await sut.RegisterAsync(request);
@@ -113,7 +114,7 @@ public sealed class AuthServiceTests
         var passwordHasher = new Mock<IPasswordHasher>();
         var jwtProvider = new Mock<IJwtProvider>();
         var clock = new Mock<IDateTimeProvider>();
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
         var request = new RegisterRequest(TestConstants.ValidEmail, "lowercase1");
 
         var result = await sut.RegisterAsync(request);
@@ -129,7 +130,7 @@ public sealed class AuthServiceTests
         var passwordHasher = new Mock<IPasswordHasher>();
         var jwtProvider = new Mock<IJwtProvider>();
         var clock = new Mock<IDateTimeProvider>();
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
         var request = new RegisterRequest(TestConstants.ValidEmail, "NoNumbers!");
 
         var result = await sut.RegisterAsync(request);
@@ -156,7 +157,7 @@ public sealed class AuthServiceTests
             .Setup(j => j.Generate(It.IsAny<User>()))
             .Returns(TestConstants.MockJwtToken);
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
         var request = new LoginRequest(TestConstants.ValidEmail, TestConstants.ValidPassword);
 
         var result = await sut.LoginAsync(request);
@@ -177,7 +178,7 @@ public sealed class AuthServiceTests
         userRepository
             .Setup(r => r.FindByEmailAsync(TestConstants.ValidEmail, It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
         var request = new LoginRequest(TestConstants.ValidEmail, TestConstants.ValidPassword);
 
         var result = await sut.LoginAsync(request);
@@ -201,7 +202,7 @@ public sealed class AuthServiceTests
         passwordHasher
             .Setup(h => h.Verify(TestConstants.ValidPassword, TestConstants.HashedPassword))
             .Returns(false);
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
         var request = new LoginRequest(TestConstants.ValidEmail, TestConstants.ValidPassword);
 
         var result = await sut.LoginAsync(request);
@@ -222,7 +223,7 @@ public sealed class AuthServiceTests
         userRepository
             .Setup(r => r.FindByIdAsync(TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
 
         var result = await sut.GetCurrentUserAsync(TestConstants.ValidUserId);
 
@@ -241,7 +242,7 @@ public sealed class AuthServiceTests
         userRepository
             .Setup(r => r.FindByIdAsync(TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
-        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object);
+        var sut = new AuthService(userRepository.Object, passwordHasher.Object, jwtProvider.Object, new AuthValidator(), clock.Object, NullLogger<AuthService>.Instance);
 
         var result = await sut.GetCurrentUserAsync(TestConstants.ValidUserId);
 
