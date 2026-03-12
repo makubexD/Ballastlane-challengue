@@ -7,7 +7,7 @@ using BallastLane.Domain.Interfaces;
 namespace BallastLane.Application.Services;
 
 public sealed class TaskService(
-    ITaskRepository taskRepository,
+    IUnitOfWork unitOfWork,
     TaskValidator validator,
     IDateTimeProvider clock) : ITaskService
 {
@@ -21,7 +21,8 @@ public sealed class TaskService(
             return Result<TaskItem>.Fail(errors);
 
         var task = TaskItem.Create(Guid.NewGuid(), request.Title, request.Description, request.Status, request.DueDate, userId);
-        await taskRepository.SaveAsync(task, cancellationToken);
+        await unitOfWork.Tasks.SaveAsync(task, cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
         return Result<TaskItem>.Ok(task);
     }
 
@@ -30,7 +31,7 @@ public sealed class TaskService(
         Guid requestingUserId,
         CancellationToken cancellationToken = default)
     {
-        var task = await taskRepository.GetByIdAsync(id, cancellationToken);
+        var task = await unitOfWork.Tasks.GetByIdAsync(id, cancellationToken);
 
         if (task is null)
             return Result<TaskItem>.Fail($"Task with id '{id}' was not found.");
@@ -45,7 +46,7 @@ public sealed class TaskService(
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        var tasks = await taskRepository.GetAllByUserIdAsync(userId, cancellationToken);
+        var tasks = await unitOfWork.Tasks.GetAllByUserIdAsync(userId, cancellationToken);
         return Result<IReadOnlyList<TaskItem>>.Ok(tasks);
     }
 
@@ -59,7 +60,7 @@ public sealed class TaskService(
         if (errors.Count > 0)
             return Result<TaskItem>.Fail(errors);
 
-        var existing = await taskRepository.GetByIdAsync(id, cancellationToken);
+        var existing = await unitOfWork.Tasks.GetByIdAsync(id, cancellationToken);
         if (existing is null)
             return Result<TaskItem>.Fail($"Task with id '{id}' was not found.");
 
@@ -67,7 +68,8 @@ public sealed class TaskService(
             return Result<TaskItem>.Fail("Access denied.");
 
         var updated = TaskItem.Create(existing.Id, request.Title, request.Description, request.Status, request.DueDate, existing.UserId);
-        await taskRepository.UpdateAsync(updated, cancellationToken);
+        await unitOfWork.Tasks.UpdateAsync(updated, cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
         return Result<TaskItem>.Ok(updated);
     }
 
@@ -76,14 +78,15 @@ public sealed class TaskService(
         Guid requestingUserId,
         CancellationToken cancellationToken = default)
     {
-        var existing = await taskRepository.GetByIdAsync(id, cancellationToken);
+        var existing = await unitOfWork.Tasks.GetByIdAsync(id, cancellationToken);
         if (existing is null)
             return Result.Fail($"Task with id '{id}' was not found.");
 
         if (existing.UserId != requestingUserId)
             return Result.Fail("Access denied.");
 
-        await taskRepository.DeleteAsync(id, cancellationToken);
+        await unitOfWork.Tasks.DeleteAsync(id, cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
         return Result.Ok();
     }
 }
