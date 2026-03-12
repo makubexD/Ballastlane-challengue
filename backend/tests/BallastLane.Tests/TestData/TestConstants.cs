@@ -18,4 +18,9 @@ internal static class TestConstants
         "in the BallastLane application system, which should cause a validation failure error " +
         "to be returned by the TaskValidator class immediately.";
     internal static readonly TaskItemStatus DefaultStatus = TaskItemStatus.Todo;
+    internal const string ValidEmail = "user@example.com";
+    internal const string ValidPassword = "SecurePass1";
+    internal const string HashedPassword = "$2a$12$hashedpasswordvalue";
+    internal const string MockJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
+    internal const string InvalidCredentialsMessage = "Invalid email or password.";
 }
