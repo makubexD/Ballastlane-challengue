@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BallastLane.API.Middleware;
 
@@ -16,20 +17,29 @@ public sealed class ExceptionHandlerMiddleware(RequestDelegate next, ILogger<Exc
         catch (UnauthorizedAccessException ex)
         {
             logger.LogWarning(ex, "Unauthorized access attempt.");
-            await WriteErrorResponse(context, HttpStatusCode.Unauthorized, "Unauthorized.");
+            await WriteProblemDetailsResponse(context, HttpStatusCode.Unauthorized, "Unauthorized", "Unauthorized.");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception occurred.");
-            await WriteErrorResponse(context, HttpStatusCode.InternalServerError, "An unexpected error occurred.");
+            await WriteProblemDetailsResponse(context, HttpStatusCode.InternalServerError, "Internal Server Error", "An unexpected error occurred.");
         }
     }
 
-    private static async Task WriteErrorResponse(HttpContext context, HttpStatusCode statusCode, string message)
+    private static async Task WriteProblemDetailsResponse(
+        HttpContext context,
+        HttpStatusCode statusCode,
+        string title,
+        string detail)
     {
         context.Response.StatusCode = (int)statusCode;
-        context.Response.ContentType = "application/json";
-        var body = JsonSerializer.Serialize(new { errors = new[] { message } }, JsonOptions);
-        await context.Response.WriteAsync(body);
+        context.Response.ContentType = "application/problem+json";
+        var problem = new ProblemDetails
+        {
+            Status = (int)statusCode,
+            Title = title,
+            Detail = detail
+        };
+        await context.Response.WriteAsync(JsonSerializer.Serialize(problem, JsonOptions));
     }
 }

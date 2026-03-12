@@ -85,6 +85,7 @@ public sealed class AuthServiceTests
         var result = await sut.RegisterAsync(request);
 
         Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.Conflict, result.ErrorType);
         Assert.Contains(result.Errors, e => e.Contains("already exists"));
         userRepository.Verify(
             r => r.SaveAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
@@ -184,6 +185,7 @@ public sealed class AuthServiceTests
         var result = await sut.LoginAsync(request);
 
         Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.Unauthorized, result.ErrorType);
         Assert.Equal(TestConstants.InvalidCredentialsMessage, result.Errors[0]);
         Assert.DoesNotContain(result.Errors, e => e.Contains("not found", StringComparison.OrdinalIgnoreCase));
     }
@@ -208,6 +210,7 @@ public sealed class AuthServiceTests
         var result = await sut.LoginAsync(request);
 
         Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.Unauthorized, result.ErrorType);
         Assert.Equal(TestConstants.InvalidCredentialsMessage, result.Errors[0]);
         jwtProvider.Verify(j => j.Generate(It.IsAny<User>()), Times.Never());
     }
@@ -247,5 +250,6 @@ public sealed class AuthServiceTests
         var result = await sut.GetCurrentUserAsync(TestConstants.ValidUserId);
 
         Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.NotFound, result.ErrorType);
     }
 }

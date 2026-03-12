@@ -1,5 +1,6 @@
 using BallastLane.Application.Services;
 using BallastLane.Application.Validators;
+using BallastLane.Domain.Common;
 using BallastLane.Domain.Entities;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Tests.TestData;
@@ -152,6 +153,7 @@ public sealed class TaskServiceTests
         var result = await sut.GetTaskByIdAsync(TestConstants.UnknownTaskId, TestConstants.ValidUserId);
 
         Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.NotFound, result.ErrorType);
         Assert.Contains(result.Errors, e => e.Contains(TestConstants.UnknownTaskId.ToString()));
     }
 
@@ -168,6 +170,7 @@ public sealed class TaskServiceTests
         var result = await sut.GetTaskByIdAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId);
 
         Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.Unauthorized, result.ErrorType);
         Assert.Contains(result.Errors, e => e.Contains("Access denied"));
     }
 
@@ -209,6 +212,7 @@ public sealed class TaskServiceTests
         var result = await sut.UpdateTaskAsync(TestConstants.UnknownTaskId, updateRequest, TestConstants.ValidUserId);
 
         Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.NotFound, result.ErrorType);
         Assert.Contains(result.Errors, e => e.Contains(TestConstants.UnknownTaskId.ToString()));
     }
 
@@ -242,6 +246,7 @@ public sealed class TaskServiceTests
         var result = await sut.DeleteTaskAsync(TestConstants.UnknownTaskId, TestConstants.ValidUserId);
 
         Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.NotFound, result.ErrorType);
         Assert.Contains(result.Errors, e => e.Contains(TestConstants.UnknownTaskId.ToString()));
     }
 

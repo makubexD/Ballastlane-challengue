@@ -1,3 +1,4 @@
+using BallastLane.API.Extensions;
 using BallastLane.API.Services;
 using BallastLane.Application.DTOs;
 using BallastLane.Application.Services;
@@ -10,28 +11,18 @@ namespace BallastLane.API.Controllers;
 [Route("api/auth")]
 public sealed class AuthController(IAuthService authService, ICurrentUserService currentUser) : ControllerBase
 {
-    private const string AlreadyExistsFragment = "already exists";
-
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
         var result = await authService.RegisterAsync(request, cancellationToken);
-        if (result.IsFailure)
-            return result.Errors.Any(e => e.Contains(AlreadyExistsFragment, StringComparison.OrdinalIgnoreCase))
-                ? Conflict(new { errors = result.Errors })
-                : BadRequest(new { errors = result.Errors });
-
-        return StatusCode(StatusCodes.Status201Created, new { id = result.Value.Id, email = result.Value.Email });
+        return result.ToActionResult(user => StatusCode(StatusCodes.Status201Created, new { id = user.Id, email = user.Email }));
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         var result = await authService.LoginAsync(request, cancellationToken);
-        if (result.IsFailure)
-            return Unauthorized(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return result.ToActionResult(Ok);
     }
 
     [HttpGet("me")]
@@ -39,9 +30,6 @@ public sealed class AuthController(IAuthService authService, ICurrentUserService
     public async Task<IActionResult> Me(CancellationToken cancellationToken)
     {
         var result = await authService.GetCurrentUserAsync(currentUser.UserId, cancellationToken);
-        if (result.IsFailure)
-            return NotFound(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return result.ToActionResult(Ok);
     }
 }

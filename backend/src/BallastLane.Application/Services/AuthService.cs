@@ -27,14 +27,14 @@ public sealed class AuthService(
 
         var existing = await userRepository.FindByEmailAsync(request.Email, cancellationToken);
         if (existing is not null)
-            return Result<User>.Fail("An account with this email already exists.");
+            return Result<User>.Fail("An account with this email already exists.", ResultErrorType.Conflict);
 
         var hash = passwordHasher.Hash(request.Password);
         var user = User.Create(Guid.NewGuid(), request.Email, hash, clock.UtcNow);
         var saveResult = await userRepository.SaveAsync(user, cancellationToken);
 
         if (!saveResult.IsSuccess)
-            return Result<User>.Fail(saveResult.Errors);
+            return Result<User>.Fail(saveResult.Errors[0], saveResult.ErrorType);
 
         logger.LogInformation("User registered: {Email}", request.Email);
         return Result<User>.Ok(user);
@@ -52,13 +52,13 @@ public sealed class AuthService(
         if (user is null)
         {
             logger.LogWarning("Failed login attempt for: {Email}", request.Email);
-            return Result<AuthResponse>.Fail(InvalidCredentialsMessage);
+            return Result<AuthResponse>.Fail(InvalidCredentialsMessage, ResultErrorType.Unauthorized);
         }
 
         if (!passwordHasher.Verify(request.Password, user.PasswordHash))
         {
             logger.LogWarning("Failed login attempt for: {Email}", request.Email);
-            return Result<AuthResponse>.Fail(InvalidCredentialsMessage);
+            return Result<AuthResponse>.Fail(InvalidCredentialsMessage, ResultErrorType.Unauthorized);
         }
 
         var token = jwtProvider.Generate(user);
@@ -73,7 +73,7 @@ public sealed class AuthService(
     {
         var user = await userRepository.FindByIdAsync(userId, cancellationToken);
         if (user is null)
-            return Result<UserProfileResponse>.Fail($"User '{userId}' was not found.");
+            return Result<UserProfileResponse>.Fail($"User '{userId}' was not found.", ResultErrorType.NotFound);
 
         return Result<UserProfileResponse>.Ok(new UserProfileResponse(user.Id, user.Email, user.CreatedAt));
     }

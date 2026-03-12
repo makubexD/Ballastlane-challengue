@@ -38,10 +38,10 @@ public sealed class TaskService(
         var task = await taskRepository.GetByIdAsync(id, cancellationToken);
 
         if (task is null)
-            return Result<TaskItem>.Fail($"Task with id '{id}' was not found.");
+            return Result<TaskItem>.Fail($"Task with id '{id}' was not found.", ResultErrorType.NotFound);
 
         if (task.UserId != requestingUserId)
-            return Result<TaskItem>.Fail("Access denied.");
+            return Result<TaskItem>.Fail("Access denied.", ResultErrorType.Unauthorized);
 
         return Result<TaskItem>.Ok(task);
     }
@@ -66,10 +66,10 @@ public sealed class TaskService(
 
         var existing = await taskRepository.GetByIdAsync(id, cancellationToken);
         if (existing is null)
-            return Result<TaskItem>.Fail($"Task with id '{id}' was not found.");
+            return Result<TaskItem>.Fail($"Task with id '{id}' was not found.", ResultErrorType.NotFound);
 
         if (existing.UserId != requestingUserId)
-            return Result<TaskItem>.Fail("Access denied.");
+            return Result<TaskItem>.Fail("Access denied.", ResultErrorType.Unauthorized);
 
         var updated = TaskItem.Create(existing.Id, request.Title, request.Description, request.Status, request.DueDate, existing.UserId);
         await taskRepository.UpdateAsync(updated, cancellationToken);
@@ -84,10 +84,10 @@ public sealed class TaskService(
     {
         var existing = await taskRepository.GetByIdAsync(id, cancellationToken);
         if (existing is null)
-            return Result.Fail($"Task with id '{id}' was not found.");
+            return Result.Fail($"Task with id '{id}' was not found.", ResultErrorType.NotFound);
 
         if (existing.UserId != requestingUserId)
-            return Result.Fail("Access denied.");
+            return Result.Fail("Access denied.", ResultErrorType.Unauthorized);
 
         await taskRepository.DeleteAsync(id, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
