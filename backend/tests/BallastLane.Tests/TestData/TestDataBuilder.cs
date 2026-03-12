@@ -6,7 +6,7 @@ namespace BallastLane.Tests.TestData;
 
 public static class TestDataBuilder
 {
-    public static CreateTaskRequest ValidCreateRequest(
+    public static TaskRequest ValidCreateRequest(
         string? title = null,
         string? description = null,
         DateTime? dueDate = null,
@@ -16,7 +16,7 @@ public static class TestDataBuilder
             status,
             dueDate ?? TestConstants.FutureDueDate);
 
-    public static UpdateTaskRequest ValidUpdateRequest(
+    public static TaskRequest ValidUpdateRequest(
         string? title = null,
         string? description = null,
         DateTime? dueDate = null,
@@ -35,5 +35,6 @@ public static class TestDataBuilder
             TestConstants.ValidDescription,
             TestConstants.DefaultStatus,
             TestConstants.FutureDueDate,
-            userId ?? TestConstants.ValidUserId);
+            userId ?? TestConstants.ValidUserId,
+            TestConstants.FixedUtcNow);
 }

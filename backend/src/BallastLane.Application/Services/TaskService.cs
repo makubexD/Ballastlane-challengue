@@ -19,7 +19,7 @@ public sealed class TaskService(
     IDomainEventDispatcher eventDispatcher) : ITaskCommandService, ITaskQueryService
 {
     public async Task<Result<TaskItem>> CreateTaskAsync(
-        CreateTaskRequest request,
+        TaskRequest request,
         Guid userId,
         CancellationToken cancellationToken = default)
     {
@@ -27,7 +27,7 @@ public sealed class TaskService(
         if (errors.Count > 0)
             return Result<TaskItem>.Fail(errors);
 
-        var task = TaskItem.Create(Guid.NewGuid(), request.Title, request.Description, request.Status, request.DueDate, userId);
+        var task = TaskItem.Create(Guid.NewGuid(), request.Title, request.Description, request.Status, request.DueDate, userId, clock.UtcNow);
         await taskRepository.SaveAsync(task, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
         logger.LogInformation("Task created: {TaskId} for user {UserId}", task.Id, userId);
@@ -69,7 +69,7 @@ public sealed class TaskService(
 
     public async Task<Result<TaskItem>> UpdateTaskAsync(
         Guid id,
-        UpdateTaskRequest request,
+        TaskRequest request,
         Guid requestingUserId,
         CancellationToken cancellationToken = default)
     {
@@ -84,7 +84,7 @@ public sealed class TaskService(
         if (existing.UserId != requestingUserId)
             return Result<TaskItem>.Fail("Access denied.", ResultErrorType.Unauthorized);
 
-        var updated = TaskItem.Create(existing.Id, request.Title, request.Description, request.Status, request.DueDate, existing.UserId);
+        var updated = TaskItem.Create(existing.Id, request.Title, request.Description, request.Status, request.DueDate, existing.UserId, existing.CreatedAt);
         await taskRepository.UpdateAsync(updated, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
         return Result<TaskItem>.Ok(updated);

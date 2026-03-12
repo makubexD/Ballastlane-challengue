@@ -12,7 +12,7 @@ public sealed class CreateTaskCommandHandler(ITaskCommandService commandService)
 {
     public Task<Result<TaskItem>> HandleAsync(CreateTaskCommand command, CancellationToken cancellationToken = default)
     {
-        var request = new CreateTaskRequest(command.Title, command.Description, command.Status, command.DueDate);
+        var request = new TaskRequest(command.Title, command.Description, command.Status, command.DueDate);
         return commandService.CreateTaskAsync(request, command.UserId, cancellationToken);
     }
 }

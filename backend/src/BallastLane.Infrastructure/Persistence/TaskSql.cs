@@ -52,18 +52,24 @@ internal static class TaskSql
     internal const string ColStatus = "status";
     internal const string ColDueDate = "due_date";
     internal const string ColUserId = "user_id";
+    internal const string ColCreatedAt = "created_at";
+    internal const string ColUpdatedAt = "updated_at";
     internal const string ColDeletedAt = "deleted_at";
 
     internal static TaskItem MapToTask(NpgsqlDataReader reader)
     {
         var status = Enum.Parse<TaskItemStatus>(reader.GetString(reader.GetOrdinal(ColStatus)));
+        var createdAt = reader.GetDateTime(reader.GetOrdinal(ColCreatedAt)).ToUniversalTime();
+        var updatedAt = reader.GetDateTime(reader.GetOrdinal(ColUpdatedAt)).ToUniversalTime();
         var task = TaskItem.Create(
             reader.GetGuid(reader.GetOrdinal(ColId)),
             reader.GetString(reader.GetOrdinal(ColTitle)),
             reader.GetString(reader.GetOrdinal(ColDescription)),
             status,
             reader.GetDateTime(reader.GetOrdinal(ColDueDate)).ToUniversalTime(),
-            reader.GetGuid(reader.GetOrdinal(ColUserId)));
+            reader.GetGuid(reader.GetOrdinal(ColUserId)),
+            createdAt,
+            updatedAt);
 
         var deletedAtOrdinal = reader.GetOrdinal(ColDeletedAt);
         if (!reader.IsDBNull(deletedAtOrdinal))
@@ -82,5 +88,18 @@ internal static class TaskSql
         command.Parameters.AddWithValue("@user_id", task.UserId);
         command.Parameters.AddWithValue("@created_at", task.CreatedAt);
         command.Parameters.AddWithValue("@updated_at", task.UpdatedAt);
+    }
+
+    internal static void AddUpdateParameters(
+        NpgsqlCommand command, Guid id, string title, string description,
+        string status, DateTime dueDate, DateTime updatedAt, Guid userId)
+    {
+        command.Parameters.AddWithValue("@id", id);
+        command.Parameters.AddWithValue("@title", title);
+        command.Parameters.AddWithValue("@description", description);
+        command.Parameters.AddWithValue("@status", status);
+        command.Parameters.AddWithValue("@due_date", dueDate);
+        command.Parameters.AddWithValue("@updated_at", updatedAt);
+        command.Parameters.AddWithValue("@user_id", userId);
     }
 }

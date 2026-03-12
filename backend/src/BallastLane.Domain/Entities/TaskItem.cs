@@ -22,7 +22,9 @@ public sealed class TaskItem
         string description,
         TaskItemStatus status,
         DateTime dueDate,
-        Guid userId) => new()
+        Guid userId,
+        DateTime createdAt,
+        DateTime? updatedAt = null) => new()
     {
         Id = id,
         Title = title,
@@ -30,8 +32,8 @@ public sealed class TaskItem
         Status = status,
         DueDate = dueDate,
         UserId = userId,
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow
+        CreatedAt = createdAt,
+        UpdatedAt = updatedAt ?? createdAt
     };
 
     public void Delete(DateTime deletedAt) => DeletedAt = deletedAt;

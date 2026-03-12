@@ -68,12 +68,9 @@ public sealed class SqlTaskRepository(
     {
         await using var connection = (NpgsqlConnection)await connectionFactory.CreateAsync(cancellationToken);
         await using var command = new NpgsqlCommand(TaskSql.Update, connection);
-        command.Parameters.AddWithValue("@id", task.Id);
-        command.Parameters.AddWithValue("@title", task.Title);
-        command.Parameters.AddWithValue("@description", task.Description);
-        command.Parameters.AddWithValue("@status", task.Status.ToString());
-        command.Parameters.AddWithValue("@due_date", task.DueDate);
-        command.Parameters.AddWithValue("@updated_at", dateTimeProvider.UtcNow);
+        TaskSql.AddUpdateParameters(
+            command, task.Id, task.Title, task.Description,
+            task.Status.ToString(), task.DueDate, dateTimeProvider.UtcNow, task.UserId);
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
