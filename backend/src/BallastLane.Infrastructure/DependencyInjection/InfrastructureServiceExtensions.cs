@@ -31,7 +31,9 @@ public static class InfrastructureServiceExtensions
 
         services.AddSingleton<TaskValidator>();
         services.AddSingleton<AuthValidator>();
-        services.AddScoped<ITaskService, TaskService>();
+        services.AddScoped<TaskService>();
+        services.AddScoped<ITaskCommandService>(sp => sp.GetRequiredService<TaskService>());
+        services.AddScoped<ITaskQueryService>(sp => sp.GetRequiredService<TaskService>());
         services.AddScoped<IAuthService, AuthService>();
 
         services.AddSingleton(sp =>

@@ -9,7 +9,7 @@ namespace BallastLane.Application.Services;
 public sealed class TaskService(
     IUnitOfWork unitOfWork,
     TaskValidator validator,
-    IDateTimeProvider clock) : ITaskService
+    IDateTimeProvider clock) : ITaskCommandService, ITaskQueryService
 {
     public async Task<Result<TaskItem>> CreateTaskAsync(
         CreateTaskRequest request,
