@@ -23,14 +23,14 @@ public sealed class CqrsHandlerTests
     {
         var commandService = new Mock<ITaskCommandService>();
         var task = TestDataBuilder.ValidTask();
-        var expectedRequest = new CreateTaskRequest(
+        var expectedRequest = new TaskRequest(
             TestConstants.ValidTitle,
             TestConstants.ValidDescription,
             TaskItemStatus.Todo,
             TestConstants.FutureDueDate);
         commandService
             .Setup(s => s.CreateTaskAsync(
-                It.Is<CreateTaskRequest>(r =>
+                It.Is<TaskRequest>(r =>
                     r.Title == expectedRequest.Title &&
                     r.Description == expectedRequest.Description &&
                     r.Status == expectedRequest.Status &&
@@ -58,7 +58,7 @@ public sealed class CqrsHandlerTests
         var commandService = new Mock<ITaskCommandService>();
         commandService
             .Setup(s => s.CreateTaskAsync(
-                It.IsAny<CreateTaskRequest>(),
+                It.IsAny<TaskRequest>(),
                 It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<TaskItem>.Fail("Title is required."));
@@ -80,7 +80,7 @@ public sealed class CqrsHandlerTests
         commandService
             .Setup(s => s.UpdateTaskAsync(
                 TestConstants.ValidTaskId,
-                It.Is<UpdateTaskRequest>(r => r.Title == TestConstants.ValidTitle),
+                It.Is<TaskRequest>(r => r.Title == TestConstants.ValidTitle),
                 TestConstants.ValidUserId,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<TaskItem>.Ok(task));
@@ -106,7 +106,7 @@ public sealed class CqrsHandlerTests
         commandService
             .Setup(s => s.UpdateTaskAsync(
                 It.IsAny<Guid>(),
-                It.IsAny<UpdateTaskRequest>(),
+                It.IsAny<TaskRequest>(),
                 It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<TaskItem>.Fail("Task was not found.", ResultErrorType.NotFound));

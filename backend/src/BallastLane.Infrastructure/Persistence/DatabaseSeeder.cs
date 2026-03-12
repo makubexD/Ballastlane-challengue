@@ -10,7 +10,8 @@ namespace BallastLane.Infrastructure.Persistence;
 public sealed class DatabaseSeeder(
     IDbConnectionFactory connectionFactory,
     IPasswordHasher passwordHasher,
-    IOptions<SeedSettings> seedOptions)
+    IOptions<SeedSettings> seedOptions,
+    IDateTimeProvider dateTimeProvider)
 {
     private readonly SeedSettings _seed = seedOptions.Value;
 
@@ -25,7 +26,7 @@ public sealed class DatabaseSeeder(
             return;
 
         var userId = Guid.NewGuid();
-        var now = DateTime.UtcNow;
+        var now = dateTimeProvider.UtcNow;
         var passwordHash = passwordHasher.Hash(_seed.DemoUserPassword);
 
         await InsertDemoUserAsync(connection, userId, passwordHash, now, cancellationToken);

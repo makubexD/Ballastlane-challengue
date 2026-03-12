@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using BallastLane.Application.Common;
 using BallastLane.Domain.Entities;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Infrastructure.Settings;
@@ -11,7 +12,6 @@ namespace BallastLane.Infrastructure.Auth;
 
 public sealed class JwtProvider(IOptions<JwtSettings> options, IDateTimeProvider clock) : IJwtProvider
 {
-    private const string UserIdClaimType = "userId";
     private readonly JwtSettings _settings = options.Value;
 
     public int ExpiryMinutes => _settings.ExpiryMinutes;
@@ -25,7 +25,7 @@ public sealed class JwtProvider(IOptions<JwtSettings> options, IDateTimeProvider
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(UserIdClaimType, user.Id.ToString()),
+            new Claim(ClaimNames.UserId, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

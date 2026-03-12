@@ -39,7 +39,7 @@ public sealed class TasksController(
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateTaskRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([FromBody] TaskRequest request, CancellationToken cancellationToken)
     {
         var command = new CreateTaskCommand(request.Title, request.Description, request.Status, request.DueDate, currentUser.UserId);
         var result = await commandDispatcher.SendAsync<CreateTaskCommand, TaskItem>(command, cancellationToken);
@@ -47,7 +47,7 @@ public sealed class TasksController(
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid id, [FromBody] TaskRequest request, CancellationToken cancellationToken)
     {
         var command = new UpdateTaskCommand(id, request.Title, request.Description, request.Status, request.DueDate, currentUser.UserId);
         var result = await commandDispatcher.SendAsync<UpdateTaskCommand, TaskItem>(command, cancellationToken);

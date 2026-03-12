@@ -2,7 +2,7 @@ using BallastLane.Domain.ValueObjects;
 
 namespace BallastLane.Application.DTOs;
 
-public sealed record CreateTaskRequest(
+public sealed record TaskRequest(
     string Title,
     string Description,
     TaskItemStatus Status,

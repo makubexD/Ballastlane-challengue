@@ -12,7 +12,7 @@ public sealed class UpdateTaskCommandHandler(ITaskCommandService commandService)
 {
     public Task<Result<TaskItem>> HandleAsync(UpdateTaskCommand command, CancellationToken cancellationToken = default)
     {
-        var request = new UpdateTaskRequest(command.Title, command.Description, command.Status, command.DueDate);
+        var request = new TaskRequest(command.Title, command.Description, command.Status, command.DueDate);
         return commandService.UpdateTaskAsync(command.TaskId, request, command.UserId, cancellationToken);
     }
 }
