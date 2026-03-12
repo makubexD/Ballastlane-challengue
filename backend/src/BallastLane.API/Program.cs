@@ -2,6 +2,7 @@ using System.Text;
 using BallastLane.API.Middleware;
 using BallastLane.API.Services;
 using BallastLane.Infrastructure.DependencyInjection;
+using BallastLane.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -67,6 +68,16 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()));
 
 var app = builder.Build();
+
+// Run database migrations and seed on startup
+using (var scope = app.Services.CreateScope())
+{
+    var migrator = scope.ServiceProvider.GetRequiredService<DatabaseMigrator>();
+    await migrator.MigrateAsync();
+
+    var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+    await seeder.SeedAsync();
+}
 
 if (app.Environment.IsDevelopment())
 {
