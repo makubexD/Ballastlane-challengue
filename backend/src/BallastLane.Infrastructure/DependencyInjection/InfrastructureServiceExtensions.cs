@@ -42,6 +42,10 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<NpgsqlUnitOfWork>();
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<NpgsqlUnitOfWork>());
 
+        // ITaskRepository resolves to the transactional repository held inside NpgsqlUnitOfWork.
+        // BeginAsync (called by UnitOfWorkMiddleware) must run before TaskService is invoked.
+        services.AddScoped<ITaskRepository>(sp => sp.GetRequiredService<NpgsqlUnitOfWork>().TaskRepository);
+
         // AuthService uses IUserRepository directly (no write transaction needed there).
         services.AddScoped<IUserRepository, SqlUserRepository>();
 

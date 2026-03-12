@@ -18,8 +18,7 @@ public sealed class UnitOfWorkTests
         var unitOfWork = new Mock<IUnitOfWork>();
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        unitOfWork.Setup(u => u.Tasks).Returns(taskRepo.Object);
-        var sut = new TaskService(unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
+        var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
         var request = TestDataBuilder.ValidCreateRequest();
 
         // Act
@@ -38,8 +37,7 @@ public sealed class UnitOfWorkTests
         var unitOfWork = new Mock<IUnitOfWork>();
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
-        unitOfWork.Setup(u => u.Tasks).Returns(taskRepo.Object);
-        var sut = new TaskService(unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
+        var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
         var invalidRequest = TestDataBuilder.ValidCreateRequest(title: string.Empty);
 
         // Act
@@ -63,8 +61,7 @@ public sealed class UnitOfWorkTests
         taskRepo
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingTask);
-        unitOfWork.Setup(u => u.Tasks).Returns(taskRepo.Object);
-        var sut = new TaskService(unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
+        var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
 
         // Act
         var result = await sut.DeleteTaskAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId);

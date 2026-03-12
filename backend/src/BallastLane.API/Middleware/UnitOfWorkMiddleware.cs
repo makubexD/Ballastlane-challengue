@@ -1,4 +1,4 @@
-using BallastLane.Infrastructure.Persistence;
+using BallastLane.Domain.Interfaces;
 
 namespace BallastLane.API.Middleware;
 
@@ -8,7 +8,7 @@ namespace BallastLane.API.Middleware;
 /// </summary>
 public sealed class UnitOfWorkMiddleware(RequestDelegate next)
 {
-    public async Task InvokeAsync(HttpContext context, NpgsqlUnitOfWork unitOfWork)
+    public async Task InvokeAsync(HttpContext context, IUnitOfWork unitOfWork)
     {
         await unitOfWork.BeginAsync(context.RequestAborted);
         await next(context);

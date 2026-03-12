@@ -15,8 +15,7 @@ public sealed class TaskServiceTests
     {
         var repo = new Mock<ITaskRepository>();
         var uow = new Mock<IUnitOfWork>();
-        uow.Setup(u => u.Tasks).Returns(repo.Object);
-        var sut = new TaskService(uow.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
+        var sut = new TaskService(repo.Object, uow.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
         return (sut, repo, uow);
     }
 
