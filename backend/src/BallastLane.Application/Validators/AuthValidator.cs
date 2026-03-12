@@ -1,44 +1,75 @@
-using System.Text.RegularExpressions;
 using BallastLane.Application.DTOs;
+using FluentValidation;
 
 namespace BallastLane.Application.Validators;
 
+/// <summary>
+/// Validates <see cref="RegisterRequest"/> using FluentValidation rules.
+/// Password must be at least 8 characters, contain an uppercase letter, and a numeric character.
+/// </summary>
+public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest>
+{
+    public RegisterRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty()
+            .WithMessage("A valid email address is required.")
+            .EmailAddress()
+            .WithMessage("A valid email address is required.");
+
+        RuleFor(x => x.Password)
+            .NotEmpty()
+            .WithMessage("Password must be at least 8 characters.")
+            .MinimumLength(8)
+            .WithMessage("Password must be at least 8 characters.")
+            .Matches(@"[A-Z]")
+            .WithMessage("Password must contain at least one uppercase letter.")
+            .Matches(@"[0-9]")
+            .WithMessage("Password must contain at least one numeric character.");
+    }
+
+    public new IReadOnlyList<string> Validate(RegisterRequest request)
+    {
+        var result = base.Validate(request);
+        return result.Errors.Select(e => e.ErrorMessage).ToList();
+    }
+}
+
+/// <summary>
+/// Validates <see cref="LoginRequest"/> ensuring email and password are present.
+/// </summary>
+public sealed class LoginRequestValidator : AbstractValidator<LoginRequest>
+{
+    public LoginRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty()
+            .WithMessage("Email is required.");
+
+        RuleFor(x => x.Password)
+            .NotEmpty()
+            .WithMessage("Password is required.");
+    }
+
+    public new IReadOnlyList<string> Validate(LoginRequest request)
+    {
+        var result = base.Validate(request);
+        return result.Errors.Select(e => e.ErrorMessage).ToList();
+    }
+}
+
+/// <summary>
+/// Wraps <see cref="RegisterRequestValidator"/> and <see cref="LoginRequestValidator"/>
+/// to preserve the service-layer contract used by <see cref="BallastLane.Application.Services.AuthService"/>.
+/// </summary>
 public sealed class AuthValidator
 {
-    private const int MinPasswordLength = 8;
-    private static readonly Regex UppercaseRegex = new(@"[A-Z]", RegexOptions.Compiled);
-    private static readonly Regex NumericRegex = new(@"[0-9]", RegexOptions.Compiled);
-    private static readonly Regex EmailRegex = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private readonly RegisterRequestValidator _registerValidator = new();
+    private readonly LoginRequestValidator _loginValidator = new();
 
-    public IReadOnlyList<string> Validate(RegisterRequest request)
-    {
-        var errors = new List<string>();
+    public IReadOnlyList<string> Validate(RegisterRequest request) =>
+        _registerValidator.Validate(request);
 
-        if (string.IsNullOrWhiteSpace(request.Email) || !EmailRegex.IsMatch(request.Email))
-            errors.Add("A valid email address is required.");
-
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < MinPasswordLength)
-            errors.Add($"Password must be at least {MinPasswordLength} characters.");
-
-        if (!string.IsNullOrEmpty(request.Password) && !UppercaseRegex.IsMatch(request.Password))
-            errors.Add("Password must contain at least one uppercase letter.");
-
-        if (!string.IsNullOrEmpty(request.Password) && !NumericRegex.IsMatch(request.Password))
-            errors.Add("Password must contain at least one numeric character.");
-
-        return errors;
-    }
-
-    public IReadOnlyList<string> Validate(LoginRequest request)
-    {
-        var errors = new List<string>();
-
-        if (string.IsNullOrWhiteSpace(request.Email))
-            errors.Add("Email is required.");
-
-        if (string.IsNullOrWhiteSpace(request.Password))
-            errors.Add("Password is required.");
-
-        return errors;
-    }
+    public IReadOnlyList<string> Validate(LoginRequest request) =>
+        _loginValidator.Validate(request);
 }
