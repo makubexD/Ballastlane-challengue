@@ -30,5 +30,6 @@ internal static class UserSql
     internal static User MapToUser(NpgsqlDataReader reader) => User.Create(
         reader.GetGuid(reader.GetOrdinal(ColId)),
         reader.GetString(reader.GetOrdinal(ColEmail)),
-        reader.GetString(reader.GetOrdinal(ColPasswordHash)));
+        reader.GetString(reader.GetOrdinal(ColPasswordHash)),
+        reader.GetDateTime(reader.GetOrdinal(ColCreatedAt)).ToUniversalTime());
 }

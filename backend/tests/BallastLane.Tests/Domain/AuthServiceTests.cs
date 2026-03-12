@@ -75,7 +75,7 @@ public sealed class AuthServiceTests
         var passwordHasher = new Mock<IPasswordHasher>();
         var jwtProvider = new Mock<IJwtProvider>();
         var clock = new Mock<IDateTimeProvider>();
-        var existingUser = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, TestConstants.HashedPassword);
+        var existingUser = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, TestConstants.HashedPassword, TestConstants.FixedUtcNow);
         userRepository
             .Setup(r => r.FindByEmailAsync(TestConstants.ValidEmail, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingUser);
@@ -146,7 +146,7 @@ public sealed class AuthServiceTests
         var passwordHasher = new Mock<IPasswordHasher>();
         var jwtProvider = new Mock<IJwtProvider>();
         var clock = new Mock<IDateTimeProvider>();
-        var user = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, TestConstants.HashedPassword);
+        var user = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, TestConstants.HashedPassword, TestConstants.FixedUtcNow);
         userRepository
             .Setup(r => r.FindByEmailAsync(TestConstants.ValidEmail, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
@@ -195,7 +195,7 @@ public sealed class AuthServiceTests
         var passwordHasher = new Mock<IPasswordHasher>();
         var jwtProvider = new Mock<IJwtProvider>();
         var clock = new Mock<IDateTimeProvider>();
-        var user = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, TestConstants.HashedPassword);
+        var user = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, TestConstants.HashedPassword, TestConstants.FixedUtcNow);
         userRepository
             .Setup(r => r.FindByEmailAsync(TestConstants.ValidEmail, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
@@ -219,7 +219,7 @@ public sealed class AuthServiceTests
         var passwordHasher = new Mock<IPasswordHasher>();
         var jwtProvider = new Mock<IJwtProvider>();
         var clock = new Mock<IDateTimeProvider>();
-        var user = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, TestConstants.HashedPassword);
+        var user = User.Create(TestConstants.ValidUserId, TestConstants.ValidEmail, TestConstants.HashedPassword, TestConstants.FixedUtcNow);
         userRepository
             .Setup(r => r.FindByIdAsync(TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
