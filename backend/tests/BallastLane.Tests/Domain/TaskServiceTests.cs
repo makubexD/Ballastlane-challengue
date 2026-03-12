@@ -229,11 +229,15 @@ public sealed class TaskServiceTests
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingTask);
 
+        repo
+            .Setup(r => r.DeleteAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
         var result = await sut.DeleteTaskAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId);
 
         Assert.True(result.IsSuccess);
         repo.Verify(
-            r => r.DeleteAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()),
+            r => r.DeleteAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()),
             Times.Once());
     }
 
@@ -251,6 +255,26 @@ public sealed class TaskServiceTests
         Assert.True(result.IsFailure);
         Assert.Equal(ResultErrorType.NotFound, result.ErrorType);
         Assert.Contains(result.Errors, e => e.Contains(TestConstants.UnknownTaskId.ToString()));
+    }
+
+    [Fact]
+    public async Task DeleteTask_ShouldReturnNotFound_WhenRepoReturnsFalse()
+    {
+        var clock = new Mock<IDateTimeProvider>();
+        clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
+        var (sut, repo, _, _) = BuildSut(clock);
+        var existingTask = TestDataBuilder.ValidTask(id: TestConstants.ValidTaskId, userId: TestConstants.ValidUserId);
+        repo
+            .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingTask);
+        repo
+            .Setup(r => r.DeleteAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await sut.DeleteTaskAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ResultErrorType.NotFound, result.ErrorType);
     }
 
     [Fact]
@@ -302,6 +326,9 @@ public sealed class TaskServiceTests
         repo
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingTask);
+        repo
+            .Setup(r => r.DeleteAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         await sut.DeleteTaskAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId);
 

@@ -10,5 +10,5 @@ public interface ITaskRepository
     Task<(IReadOnlyList<TaskItem> Items, int TotalCount)> GetPagedByUserIdAsync(
         Guid userId, int page, int pageSize, CancellationToken cancellationToken = default);
     Task UpdateAsync(TaskItem task, CancellationToken cancellationToken = default);
-    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
 }

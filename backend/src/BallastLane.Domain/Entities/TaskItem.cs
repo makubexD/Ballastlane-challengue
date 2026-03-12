@@ -12,6 +12,9 @@ public sealed class TaskItem
     public Guid UserId { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
+    public DateTime? DeletedAt { get; private set; }
+
+    public bool IsDeleted => DeletedAt.HasValue;
 
     public static TaskItem Create(
         Guid id,
@@ -30,4 +33,6 @@ public sealed class TaskItem
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
     };
+
+    public void Delete(DateTime deletedAt) => DeletedAt = deletedAt;
 }

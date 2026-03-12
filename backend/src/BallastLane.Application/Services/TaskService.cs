@@ -102,7 +102,9 @@ public sealed class TaskService(
         if (existing.UserId != requestingUserId)
             return Result.Fail("Access denied.", ResultErrorType.Unauthorized);
 
-        await taskRepository.DeleteAsync(id, cancellationToken);
+        var deleted = await taskRepository.DeleteAsync(id, requestingUserId, cancellationToken);
+        if (!deleted)
+            return Result.Fail($"Task with id '{id}' was not found.", ResultErrorType.NotFound);
         await unitOfWork.CommitAsync(cancellationToken);
         logger.LogInformation("Task deleted: {TaskId} by user {UserId}", id, requestingUserId);
         await eventDispatcher.DispatchAsync(new TaskDeletedEvent(id, requestingUserId, clock.UtcNow), cancellationToken);

@@ -77,11 +77,15 @@ public sealed class SqlTaskRepository(
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         await using var connection = (NpgsqlConnection)await connectionFactory.CreateAsync(cancellationToken);
-        await using var command = new NpgsqlCommand(TaskSql.Delete, connection);
+        await using var command = new NpgsqlCommand(TaskSql.SoftDelete, connection);
         command.Parameters.AddWithValue("@id", id);
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        command.Parameters.AddWithValue("@user_id", userId);
+        command.Parameters.AddWithValue("@deleted_at", dateTimeProvider.UtcNow);
+        command.Parameters.AddWithValue("@updated_at", dateTimeProvider.UtcNow);
+        var rows = await command.ExecuteNonQueryAsync(cancellationToken);
+        return rows > 0;
     }
 }

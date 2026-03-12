@@ -64,6 +64,9 @@ public sealed class UnitOfWorkTests
         taskRepo
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingTask);
+        taskRepo
+            .Setup(r => r.DeleteAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         var sut = new TaskService(taskRepo.Object, unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance, dispatcher.Object);
 
         // Act

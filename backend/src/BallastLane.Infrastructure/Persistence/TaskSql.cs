@@ -12,13 +12,13 @@ internal static class TaskSql
         """;
 
     internal const string SelectById = """
-        SELECT id, title, description, status, due_date, user_id, created_at, updated_at
-        FROM tasks WHERE id = @id;
+        SELECT id, title, description, status, due_date, user_id, created_at, updated_at, deleted_at
+        FROM tasks WHERE id = @id AND deleted_at IS NULL;
         """;
 
     internal const string SelectAllByUserId = """
-        SELECT id, title, description, status, due_date, user_id, created_at, updated_at
-        FROM tasks WHERE user_id = @user_id ORDER BY created_at DESC;
+        SELECT id, title, description, status, due_date, user_id, created_at, updated_at, deleted_at
+        FROM tasks WHERE user_id = @user_id AND deleted_at IS NULL ORDER BY created_at DESC;
         """;
 
     internal const string Update = """
@@ -28,16 +28,20 @@ internal static class TaskSql
         WHERE id = @id;
         """;
 
-    internal const string Delete = "DELETE FROM tasks WHERE id = @id;";
+    internal const string SoftDelete = """
+        UPDATE tasks
+        SET deleted_at = @deleted_at, updated_at = @updated_at
+        WHERE id = @id AND user_id = @user_id AND deleted_at IS NULL;
+        """;
 
     internal const string CountByUserId = """
-        SELECT COUNT(*) FROM tasks WHERE user_id = @user_id;
+        SELECT COUNT(*) FROM tasks WHERE user_id = @user_id AND deleted_at IS NULL;
         """;
 
     internal const string SelectPagedByUserId = """
-        SELECT id, title, description, status, due_date, user_id, created_at, updated_at
+        SELECT id, title, description, status, due_date, user_id, created_at, updated_at, deleted_at
         FROM tasks
-        WHERE user_id = @user_id
+        WHERE user_id = @user_id AND deleted_at IS NULL
         ORDER BY created_at DESC
         LIMIT @page_size OFFSET @offset;
         """;
@@ -48,17 +52,24 @@ internal static class TaskSql
     internal const string ColStatus = "status";
     internal const string ColDueDate = "due_date";
     internal const string ColUserId = "user_id";
+    internal const string ColDeletedAt = "deleted_at";
 
     internal static TaskItem MapToTask(NpgsqlDataReader reader)
     {
         var status = Enum.Parse<TaskItemStatus>(reader.GetString(reader.GetOrdinal(ColStatus)));
-        return TaskItem.Create(
+        var task = TaskItem.Create(
             reader.GetGuid(reader.GetOrdinal(ColId)),
             reader.GetString(reader.GetOrdinal(ColTitle)),
             reader.GetString(reader.GetOrdinal(ColDescription)),
             status,
             reader.GetDateTime(reader.GetOrdinal(ColDueDate)).ToUniversalTime(),
             reader.GetGuid(reader.GetOrdinal(ColUserId)));
+
+        var deletedAtOrdinal = reader.GetOrdinal(ColDeletedAt);
+        if (!reader.IsDBNull(deletedAtOrdinal))
+            task.Delete(reader.GetDateTime(deletedAtOrdinal).ToUniversalTime());
+
+        return task;
     }
 
     internal static void AddInsertParameters(NpgsqlCommand command, TaskItem task)
