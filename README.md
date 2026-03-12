@@ -4,18 +4,42 @@ A full-stack task management application built with **ASP.NET Core 8** (Clean Ar
 
 ---
 
+## One-Command Start
+
+```powershell
+# PowerShell
+./start-dev.ps1
+
+# Windows CMD or double-click
+start-dev.bat
+
+# Git Bash
+./start-dev.sh
+```
+
+Validates all prerequisites, auto-generates `.env` with a random JWT secret if missing, starts PostgreSQL via Docker, and launches backend + frontend in parallel terminal windows. See [full setup details](#quick-start) below.
+
+---
+
 ## Prerequisites
 
 | Tool | Version |
 |------|---------|
-| Docker Desktop | 4.x+ |
-| .NET SDK | 8.0+ |
+| Docker Desktop or Podman | Docker 4.x+ / Podman 5.x+ |
+| .NET SDK | 8.0+ (9 and 10 also accepted) |
 | Node.js | 22 LTS |
 | Angular CLI | 20.x (`npm i -g @angular/cli`) |
+
+> **Windows note:** If you have a native PostgreSQL installation, `start-dev.bat`
+> automatically detects the port conflict and remaps the container to a free port —
+> no manual intervention or administrator rights required.
 
 ---
 
 ## Quick Start
+
+> The one-command start above handles all of the following automatically.
+> The manual steps below are for reference only.
 
 ### 1. Start the database
 
