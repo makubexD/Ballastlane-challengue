@@ -14,10 +14,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageReference Include="Moq" Version="4.*" />
-<PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="Npgsql" Version="8.*" />
+    <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
   </ItemGroup>
 
@@ -26,10 +25,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Production code under test -->
     <ProjectReference Include="..\..\src\BallastLane.Domain\BallastLane.Domain.csproj" />
     <ProjectReference Include="..\..\src\BallastLane.Application\BallastLane.Application.csproj" />
     <ProjectReference Include="..\..\src\BallastLane.Infrastructure\BallastLane.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\BallastLane.API\BallastLane.API.csproj" />
+    <!-- Shared test helpers: TestConstants, TestDataBuilder -->
+    <ProjectReference Include="..\BallastLane.Tests\BallastLane.Tests.csproj" />
   </ItemGroup>
 
 </Project>

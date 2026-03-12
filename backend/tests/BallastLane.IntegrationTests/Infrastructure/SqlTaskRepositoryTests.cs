@@ -6,7 +6,7 @@ using BallastLane.Infrastructure.Persistence;
 using BallastLane.Tests.TestData;
 using Npgsql;
 
-namespace BallastLane.Tests.Infrastructure;
+namespace BallastLane.IntegrationTests.Infrastructure;
 
 [Trait("Category", "Integration")]
 public sealed class SqlTaskRepositoryTests : IAsyncLifetime
@@ -20,9 +20,6 @@ public sealed class SqlTaskRepositoryTests : IAsyncLifetime
     private const string UpdatedTitle = "Updated Title";
 
     private const string InsertTestUserSql =
-        "INSERT INTO users (id, email, password_hash, created_at) VALUES (@id, @email, @password_hash, @created_at);";
-
-    private const string InsertOtherUserSql =
         "INSERT INTO users (id, email, password_hash, created_at) VALUES (@id, @email, @password_hash, @created_at);";
 
     private const string DeleteTasksSql = "DELETE FROM tasks WHERE user_id = @user_id OR user_id = @other_user_id;";

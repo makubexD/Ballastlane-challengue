@@ -91,27 +91,26 @@ Three demo tasks (Todo / InProgress / Done) are pre-loaded for the demo user.
 
 ### Backend
 
+Unit tests and integration tests are in **separate projects** — unit tests never require a database.
+
 ```bash
 cd backend
 
-# Unit tests only — no database required (default)
-dotnet test --settings unit-tests.runsettings
-
-# With coverage report (unit tests only)
-dotnet test --settings unit-tests.runsettings --collect:"XPlat Code Coverage"
+# Unit tests only — no database required
+dotnet test tests/BallastLane.Tests/
 
 # Single test class
-dotnet test --filter "FullyQualifiedName~TaskServiceTests"
+dotnet test tests/BallastLane.Tests/ --filter "FullyQualifiedName~TaskServiceTests"
 
-# All tests including integration (requires test DB — see below)
-dotnet test
+# With coverage report
+dotnet test tests/BallastLane.Tests/ --collect:"XPlat Code Coverage"
 ```
 
-Integration tests are tagged `[Trait("Category", "Integration")]` and require a running test database:
+Integration tests require a running test database:
 
 ```bash
 docker-compose -f docker-compose.test.yml up -d
-dotnet test --filter "Category=Integration"
+dotnet test tests/BallastLane.IntegrationTests/
 ```
 
 Connection string is read from the `TEST_DB_CONNECTION` environment variable, or falls back to
@@ -145,10 +144,12 @@ BallastLaneApp/
 │   │   ├── BallastLane.Infrastructure/ # Npgsql repositories, JWT, BCrypt — implements Domain interfaces
 │   │   └── BallastLane.API/            # ASP.NET Core controllers, middleware, Program.cs
 │   └── tests/
-│       └── BallastLane.Tests/
-│           ├── Domain/                 # Unit tests (xUnit + Moq, no DB)
-│           ├── Infrastructure/         # Integration tests (real PostgreSQL)
-│           └── API/                    # Controller tests + WebApplicationFactory
+│       ├── BallastLane.Tests/          # Unit tests (xUnit + Moq, no DB)
+│       │   ├── Domain/
+│       │   ├── Application/
+│       │   └── API/
+│       └── BallastLane.IntegrationTests/  # Integration tests (real PostgreSQL)
+│           └── Infrastructure/
 └── frontend/
     └── src/app/
         ├── core/                       # Auth guard, JWT interceptor, layout
@@ -162,7 +163,7 @@ BallastLaneApp/
 - No Entity Framework, no Dapper, no MediatR — raw Npgsql ADO.NET only
 - No ASP.NET Core Identity — custom JWT (`System.IdentityModel.Tokens.Jwt`)
 - All code follows TDD (Red-Green-Refactor) with xUnit + Moq (backend) and vitest 4 + TestBed (frontend)
-- **Test coverage:** 51 backend unit tests + 29 frontend tests — all green
+- **Test coverage:** 72 backend unit tests + 10 integration tests + 29 frontend tests — all green
 
 ---
 

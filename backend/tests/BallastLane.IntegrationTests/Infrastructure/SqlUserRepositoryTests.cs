@@ -5,7 +5,7 @@ using BallastLane.Infrastructure.Persistence;
 using BallastLane.Tests.TestData;
 using Npgsql;
 
-namespace BallastLane.Tests.Infrastructure;
+namespace BallastLane.IntegrationTests.Infrastructure;
 
 [Trait("Category", "Integration")]
 public sealed class SqlUserRepositoryTests : IAsyncLifetime
@@ -23,7 +23,6 @@ public sealed class SqlUserRepositoryTests : IAsyncLifetime
     private static readonly Guid TestUserId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid DuplicateUserId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     private static readonly Guid FindUserId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
-    private static readonly Guid UnknownUserId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
 
     private readonly string _connectionString =
         Environment.GetEnvironmentVariable("TEST_DB_CONNECTION") ?? TestConstants.IntegrationDbConnectionString;

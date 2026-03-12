@@ -4,9 +4,9 @@ using BallastLane.Domain.ValueObjects;
 
 namespace BallastLane.Tests.TestData;
 
-internal static class TestDataBuilder
+public static class TestDataBuilder
 {
-    internal static CreateTaskRequest ValidCreateRequest(
+    public static CreateTaskRequest ValidCreateRequest(
         string? title = null,
         string? description = null,
         DateTime? dueDate = null,
@@ -16,7 +16,7 @@ internal static class TestDataBuilder
             status,
             dueDate ?? TestConstants.FutureDueDate);
 
-    internal static UpdateTaskRequest ValidUpdateRequest(
+    public static UpdateTaskRequest ValidUpdateRequest(
         string? title = null,
         string? description = null,
         DateTime? dueDate = null,
@@ -26,7 +26,7 @@ internal static class TestDataBuilder
             status,
             dueDate ?? TestConstants.FutureDueDate);
 
-    internal static TaskItem ValidTask(
+    public static TaskItem ValidTask(
         Guid? id = null,
         Guid? userId = null,
         string? title = null) => TaskItem.Create(
