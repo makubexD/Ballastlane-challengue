@@ -1,6 +1,6 @@
 # BallastLane Task Manager
 
-A full-stack task management application built with **ASP.NET Core 8** (Clean Architecture, raw ADO.NET, custom JWT) and **Angular 21** (standalone components, Signals, TailwindCSS 4).
+A full-stack task management application built with **ASP.NET Core 8** (Clean Architecture, raw ADO.NET, custom JWT) and **Angular 20** (standalone components, Signals, TailwindCSS 4).
 
 ---
 
@@ -11,7 +11,7 @@ A full-stack task management application built with **ASP.NET Core 8** (Clean Ar
 | Docker Desktop | 4.x+ |
 | .NET SDK | 8.0+ |
 | Node.js | 22 LTS |
-| Angular CLI | 21.x (`npm i -g @angular/cli`) |
+| Angular CLI | 20.x (`npm i -g @angular/cli`) |
 
 ---
 
@@ -93,13 +93,13 @@ Connection string is read from environment (`TEST_DB_HOST`, `TEST_DB_PORT`, etc.
 ```bash
 cd frontend
 
-# Run all tests
-ng test
+# Run all tests (vitest)
+npx vitest run
 
 # With coverage
-ng test --coverage
+npx vitest run --coverage
 
-# Watch mode (vitest)
+# Watch mode
 npx vitest
 ```
 
@@ -133,6 +133,7 @@ BallastLaneApp/
 - No Entity Framework, no Dapper, no MediatR — raw Npgsql ADO.NET only
 - No ASP.NET Core Identity — custom JWT (`System.IdentityModel.Tokens.Jwt`)
 - All code follows TDD (Red-Green-Refactor) with xUnit + Moq (backend) and vitest 4 + TestBed (frontend)
+- **Test coverage:** 51 backend unit tests + 29 frontend tests — all green
 
 ---
 
