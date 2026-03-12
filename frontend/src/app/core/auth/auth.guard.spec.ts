@@ -14,7 +14,7 @@ describe('authGuard', () => {
         provideRouter([]),
         {
           provide: AuthService,
-          useValue: { isAuthenticated: () => false, token: () => null }
+          useValue: { isAuthenticated: () => false }
         }
       ]
     });

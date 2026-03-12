@@ -1,7 +1,7 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface LoginRequest {
@@ -14,12 +14,6 @@ export interface RegisterRequest {
   password: string;
 }
 
-export interface AuthResponse {
-  token: string;
-  expiresAt: string;
-  userId: string;
-}
-
 export interface UserProfile {
   id: string;
   email: string;
@@ -28,57 +22,56 @@ export interface UserProfile {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly tokenKey = 'auth_token';
-  private readonly _token = signal<string | null>(this.loadToken());
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
 
-  readonly isAuthenticated = computed(() => this._token() !== null);
-  readonly token = this._token.asReadonly();
+  private readonly _isAuthenticated = signal<boolean>(false);
+  readonly isAuthenticated = this._isAuthenticated.asReadonly();
 
-  constructor(private readonly http: HttpClient, private readonly router: Router) {}
-
-  login(request: LoginRequest): Observable<AuthResponse> {
+  initialize(): Observable<void> {
     return this.http
-      .post<AuthResponse>(`${environment.apiUrl}/api/auth/login`, request)
-      .pipe(tap(response => this.storeToken(response.token)));
+      .get<UserProfile>(`${environment.apiUrl}/api/auth/me`, { withCredentials: true })
+      .pipe(
+        tap(() => this._isAuthenticated.set(true)),
+        catchError(() => {
+          this._isAuthenticated.set(false);
+          return of(undefined as unknown as void);
+        })
+      ) as Observable<void>;
+  }
+
+  login(request: LoginRequest): Observable<void> {
+    return this.http
+      .post<void>(`${environment.apiUrl}/api/auth/login`, request, { withCredentials: true })
+      .pipe(tap(() => this._isAuthenticated.set(true)));
   }
 
   register(request: RegisterRequest): Observable<{ id: string; email: string }> {
     return this.http.post<{ id: string; email: string }>(
       `${environment.apiUrl}/api/auth/register`,
-      request
+      request,
+      { withCredentials: true }
     );
   }
 
   logout(): void {
-    localStorage.removeItem(this.tokenKey);
-    this._token.set(null);
-    this.router.navigate(['/login']);
+    this.http
+      .post(`${environment.apiUrl}/api/auth/logout`, {}, { withCredentials: true })
+      .subscribe({
+        complete: () => {
+          this._isAuthenticated.set(false);
+          this.router.navigate(['/login']);
+        },
+        error: () => {
+          this._isAuthenticated.set(false);
+          this.router.navigate(['/login']);
+        }
+      });
   }
 
   getCurrentUser(): Observable<UserProfile> {
-    return this.http.get<UserProfile>(`${environment.apiUrl}/api/auth/me`);
-  }
-
-  private storeToken(token: string): void {
-    localStorage.setItem(this.tokenKey, token);
-    this._token.set(token);
-  }
-
-  private loadToken(): string | null {
-    const token = localStorage.getItem(this.tokenKey);
-    if (!token) return null;
-    const parts = token.split('.');
-    if (parts.length !== 3) return token;
-    try {
-      const payload = JSON.parse(atob(parts[1]));
-      if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) {
-        localStorage.removeItem(this.tokenKey);
-        return null;
-      }
-      return token;
-    } catch {
-      localStorage.removeItem(this.tokenKey);
-      return null;
-    }
+    return this.http.get<UserProfile>(`${environment.apiUrl}/api/auth/me`, {
+      withCredentials: true
+    });
   }
 }
