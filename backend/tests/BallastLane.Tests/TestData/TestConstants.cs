@@ -23,4 +23,7 @@ internal static class TestConstants
     internal const string HashedPassword = "$2a$12$hashedpasswordvalue";
     internal const string MockJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
     internal const string InvalidCredentialsMessage = "Invalid email or password.";
+    internal const string NotFoundError = "not found";
+    internal const string IntegrationDbConnectionString =
+        "Host=localhost;Port=5433;Database=ballastlane_test;Username=ballastlane_test;Password=ballastlane_test";
 }

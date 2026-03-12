@@ -2,6 +2,7 @@ using System.Data;
 using BallastLane.Domain.Entities;
 using BallastLane.Infrastructure.Common;
 using BallastLane.Infrastructure.Persistence;
+using BallastLane.Tests.TestData;
 using Npgsql;
 
 namespace BallastLane.Tests.Infrastructure;
@@ -9,8 +10,7 @@ namespace BallastLane.Tests.Infrastructure;
 [Trait("Category", "Integration")]
 public sealed class SqlUserRepositoryTests : IAsyncLifetime
 {
-    private const string FallbackConnectionString =
-        "Host=localhost;Port=5433;Database=ballastlane_test;Username=ballastlane_test;Password=ballastlane_test";
+    private const string FindByIdEmail = "findbyid@example.com";
 
     private const string DeleteUsersSql =
         "DELETE FROM users WHERE id = @id OR id = @duplicate_id OR id = @find_id;";
@@ -26,7 +26,7 @@ public sealed class SqlUserRepositoryTests : IAsyncLifetime
     private static readonly Guid UnknownUserId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
 
     private readonly string _connectionString =
-        Environment.GetEnvironmentVariable("TEST_DB_CONNECTION") ?? FallbackConnectionString;
+        Environment.GetEnvironmentVariable("TEST_DB_CONNECTION") ?? TestConstants.IntegrationDbConnectionString;
 
     private DirectConnectionFactory _connectionFactory = null!;
     private SqlUserRepository _sut = null!;
@@ -100,7 +100,7 @@ public sealed class SqlUserRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task FindByIdAsync_ShouldReturnUser_WhenIdExists()
     {
-        var user = User.Create(FindUserId, "findbyid@example.com", TestPasswordHash);
+        var user = User.Create(FindUserId, FindByIdEmail, TestPasswordHash);
         await _sut.SaveAsync(user);
 
         var found = await _sut.FindByIdAsync(FindUserId);

@@ -13,7 +13,6 @@ namespace BallastLane.Tests.API;
 public sealed class TasksControllerTests
 {
     private const string TitleRequiredError = "Title is required.";
-    private const string NotFoundError = "not found";
     private const string AccessDeniedError = "Access denied";
     private const string TaskNotFoundError = "task not found";
     private static readonly string[] TitleRequiredErrors = [TitleRequiredError];
@@ -80,7 +79,7 @@ public sealed class TasksControllerTests
         currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
         taskService
             .Setup(s => s.GetTaskByIdAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<TaskItem>.Fail(NotFoundError));
+            .ReturnsAsync(Result<TaskItem>.Fail(TestConstants.NotFoundError));
         var sut = new TasksController(taskService.Object, currentUser.Object);
 
         var result = await sut.GetById(TestConstants.ValidTaskId, CancellationToken.None);
@@ -217,7 +216,7 @@ public sealed class TasksControllerTests
         currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
         taskService
             .Setup(s => s.DeleteTaskAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail(NotFoundError));
+            .ReturnsAsync(Result.Fail(TestConstants.NotFoundError));
         var sut = new TasksController(taskService.Object, currentUser.Object);
 
         var result = await sut.Delete(TestConstants.ValidTaskId, CancellationToken.None);

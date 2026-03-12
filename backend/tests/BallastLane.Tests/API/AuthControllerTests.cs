@@ -14,7 +14,6 @@ public sealed class AuthControllerTests
 {
     private const string AlreadyExistsError = "An account with this email already exists.";
     private const string PasswordTooShortError = "Password must be at least 8 characters.";
-    private const string UserNotFoundError = "not found";
 
     private static (AuthController sut, Mock<IAuthService> authService) BuildSut()
     {
@@ -120,7 +119,7 @@ public sealed class AuthControllerTests
         var (sut, authService) = BuildSut();
         authService
             .Setup(s => s.GetCurrentUserAsync(TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<UserProfileResponse>.Fail(UserNotFoundError));
+            .ReturnsAsync(Result<UserProfileResponse>.Fail(TestConstants.NotFoundError));
 
         var result = await sut.Me(CancellationToken.None);
 
