@@ -14,12 +14,14 @@ public sealed class JwtProvider(IConfiguration configuration, IDateTimeProvider 
     private const string ExpiryMinutesKey = "JWT_EXPIRY_MINUTES";
     private const string UserIdClaimType = "userId";
 
+    public int ExpiryMinutes => int.Parse(configuration[ExpiryMinutesKey] ?? "60");
+
     public string Generate(User user)
     {
         var secret = configuration[SecretKey]
             ?? throw new InvalidOperationException($"Configuration key '{SecretKey}' is not set.");
 
-        var expiryMinutes = int.Parse(configuration[ExpiryMinutesKey] ?? "60");
+        var expiryMinutes = ExpiryMinutes;
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

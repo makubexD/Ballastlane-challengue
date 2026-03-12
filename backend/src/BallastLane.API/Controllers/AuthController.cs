@@ -10,16 +10,18 @@ namespace BallastLane.API.Controllers;
 [Route("api/auth")]
 public sealed class AuthController(IAuthService authService, ICurrentUserService currentUser) : ControllerBase
 {
+    private const string AlreadyExistsFragment = "already exists";
+
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
         var result = await authService.RegisterAsync(request, cancellationToken);
         if (result.IsFailure)
-            return result.Errors.Any(e => e.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+            return result.Errors.Any(e => e.Contains(AlreadyExistsFragment, StringComparison.OrdinalIgnoreCase))
                 ? Conflict(new { errors = result.Errors })
                 : BadRequest(new { errors = result.Errors });
 
-        return StatusCode(201, new { id = result.Value.Id, email = result.Value.Email });
+        return StatusCode(StatusCodes.Status201Created, new { id = result.Value.Id, email = result.Value.Email });
     }
 
     [HttpPost("login")]

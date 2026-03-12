@@ -52,7 +52,7 @@ public sealed class AuthService(
             return Result<AuthResponse>.Fail(InvalidCredentialsMessage);
 
         var token = jwtProvider.Generate(user);
-        var expiresAt = clock.UtcNow.AddMinutes(60);
+        var expiresAt = clock.UtcNow.AddMinutes(jwtProvider.ExpiryMinutes);
         return Result<AuthResponse>.Ok(new AuthResponse(token, expiresAt, user.Id));
     }
 
