@@ -1,3 +1,4 @@
+using BallastLane.Application.Common;
 using BallastLane.Application.CQRS;
 using BallastLane.Application.DTOs;
 using BallastLane.Application.Services;
@@ -210,34 +211,51 @@ public sealed class CqrsHandlerTests
     public async Task GetAllTasksQueryHandler_ShouldDelegateToQueryService()
     {
         var queryService = new Mock<ITaskQueryService>();
-        var tasks = (IReadOnlyList<TaskItem>)[TestDataBuilder.ValidTask()];
+        var paged = new PagedResult<TaskItem>([TestDataBuilder.ValidTask()], 1, 1, 20);
         queryService
-            .Setup(s => s.GetAllTasksAsync(TestConstants.ValidUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<IReadOnlyList<TaskItem>>.Ok(tasks));
+            .Setup(s => s.GetAllTasksAsync(TestConstants.ValidUserId, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<PagedResult<TaskItem>>.Ok(paged));
         var sut = new GetAllTasksQueryHandler(queryService.Object);
-        var query = new GetAllTasksQuery(TestConstants.ValidUserId);
+        var query = new GetAllTasksQuery(TestConstants.ValidUserId, 1, 20);
 
         var result = await sut.HandleAsync(query, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(tasks, result.Value);
+        Assert.Equal(paged, result.Value);
     }
 
     [Fact]
-    public async Task GetAllTasksQueryHandler_ShouldReturnEmptyList_WhenUserHasNoTasks()
+    public async Task GetAllTasksQueryHandler_ShouldReturnEmptyPagedResult_WhenUserHasNoTasks()
     {
         var queryService = new Mock<ITaskQueryService>();
-        IReadOnlyList<TaskItem> emptyList = [];
+        var paged = new PagedResult<TaskItem>([], 0, 1, 20);
         queryService
-            .Setup(s => s.GetAllTasksAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<IReadOnlyList<TaskItem>>.Ok(emptyList));
+            .Setup(s => s.GetAllTasksAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<PagedResult<TaskItem>>.Ok(paged));
         var sut = new GetAllTasksQueryHandler(queryService.Object);
         var query = new GetAllTasksQuery(TestConstants.ValidUserId);
 
         var result = await sut.HandleAsync(query, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Value!);
+        Assert.Empty(result.Value!.Items);
+    }
+
+    [Fact]
+    public async Task GetAllTasksQueryHandler_ShouldForwardPageAndPageSize_FromQuery()
+    {
+        var queryService = new Mock<ITaskQueryService>();
+        var paged = new PagedResult<TaskItem>([], 0, 3, 10);
+        queryService
+            .Setup(s => s.GetAllTasksAsync(TestConstants.ValidUserId, 3, 10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<PagedResult<TaskItem>>.Ok(paged));
+        var sut = new GetAllTasksQueryHandler(queryService.Object);
+        var query = new GetAllTasksQuery(TestConstants.ValidUserId, 3, 10);
+
+        var result = await sut.HandleAsync(query, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        queryService.Verify(s => s.GetAllTasksAsync(TestConstants.ValidUserId, 3, 10, It.IsAny<CancellationToken>()), Times.Once());
     }
 
     // ── CommandDispatcher ───────────────────────────────────────────────────

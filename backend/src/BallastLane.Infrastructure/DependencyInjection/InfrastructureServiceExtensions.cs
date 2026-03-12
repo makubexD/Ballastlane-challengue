@@ -1,3 +1,4 @@
+using BallastLane.Application.Common;
 using BallastLane.Application.CQRS;
 using BallastLane.Application.EventHandlers;
 using BallastLane.Application.Events;
@@ -85,7 +86,7 @@ public static class InfrastructureServiceExtensions
 
         // Task query handlers
         services.AddScoped<IQueryHandler<GetTaskByIdQuery, TaskItem>, GetTaskByIdQueryHandler>();
-        services.AddScoped<IQueryHandler<GetAllTasksQuery, IReadOnlyList<TaskItem>>, GetAllTasksQueryHandler>();
+        services.AddScoped<IQueryHandler<GetAllTasksQuery, PagedResult<TaskItem>>, GetAllTasksQueryHandler>();
 
         return services;
     }

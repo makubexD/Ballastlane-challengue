@@ -1,5 +1,6 @@
 using BallastLane.API.Extensions;
 using BallastLane.API.Services;
+using BallastLane.Application.Common;
 using BallastLane.Application.CQRS;
 using BallastLane.Application.DTOs;
 using BallastLane.Application.Tasks.Commands;
@@ -19,11 +20,14 @@ public sealed class TasksController(
     ICurrentUserService currentUser) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetAllTasksQuery(currentUser.UserId);
-        var result = await queryDispatcher.SendAsync<GetAllTasksQuery, IReadOnlyList<TaskItem>>(query, cancellationToken);
-        return result.ToActionResult(tasks => Ok(tasks));
+        var query = new GetAllTasksQuery(currentUser.UserId, page, pageSize);
+        var result = await queryDispatcher.SendAsync<GetAllTasksQuery, PagedResult<TaskItem>>(query, cancellationToken);
+        return result.ToActionResult(Ok);
     }
 
     [HttpGet("{id:guid}")]
