@@ -3,6 +3,7 @@ using BallastLane.Application.Validators;
 using BallastLane.Domain.Entities;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Tests.TestData;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace BallastLane.Tests.Domain;
@@ -15,7 +16,7 @@ public sealed class TaskServiceTests
         var repo = new Mock<ITaskRepository>();
         var uow = new Mock<IUnitOfWork>();
         uow.Setup(u => u.Tasks).Returns(repo.Object);
-        var sut = new TaskService(uow.Object, new TaskValidator(), clock.Object);
+        var sut = new TaskService(uow.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
         return (sut, repo, uow);
     }
 

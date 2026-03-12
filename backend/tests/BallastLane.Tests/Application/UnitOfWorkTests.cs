@@ -3,6 +3,7 @@ using BallastLane.Application.Validators;
 using BallastLane.Domain.Entities;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Tests.TestData;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace BallastLane.Tests.Application;
@@ -18,7 +19,7 @@ public sealed class UnitOfWorkTests
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
         unitOfWork.Setup(u => u.Tasks).Returns(taskRepo.Object);
-        var sut = new TaskService(unitOfWork.Object, new TaskValidator(), clock.Object);
+        var sut = new TaskService(unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
         var request = TestDataBuilder.ValidCreateRequest();
 
         // Act
@@ -38,7 +39,7 @@ public sealed class UnitOfWorkTests
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(TestConstants.FixedUtcNow);
         unitOfWork.Setup(u => u.Tasks).Returns(taskRepo.Object);
-        var sut = new TaskService(unitOfWork.Object, new TaskValidator(), clock.Object);
+        var sut = new TaskService(unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
         var invalidRequest = TestDataBuilder.ValidCreateRequest(title: string.Empty);
 
         // Act
@@ -63,7 +64,7 @@ public sealed class UnitOfWorkTests
             .Setup(r => r.GetByIdAsync(TestConstants.ValidTaskId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingTask);
         unitOfWork.Setup(u => u.Tasks).Returns(taskRepo.Object);
-        var sut = new TaskService(unitOfWork.Object, new TaskValidator(), clock.Object);
+        var sut = new TaskService(unitOfWork.Object, new TaskValidator(), clock.Object, NullLogger<TaskService>.Instance);
 
         // Act
         var result = await sut.DeleteTaskAsync(TestConstants.ValidTaskId, TestConstants.ValidUserId);
