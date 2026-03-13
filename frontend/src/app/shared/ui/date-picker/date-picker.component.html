@@ -1,0 +1,93 @@
+<div class="relative">
+  <!-- Trigger -->
+  <div
+    data-testid="date-picker-trigger"
+    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md cursor-pointer flex items-center justify-between bg-white hover:border-brand-500 transition-colors"
+    (click)="toggleOpen()"
+    role="button"
+    tabindex="0"
+    (keydown.enter)="toggleOpen()"
+    (keydown.space)="toggleOpen()"
+  >
+    <span [class]="displayValue() ? 'text-gray-900' : 'text-gray-400'">
+      {{ displayValue() || 'Select a date' }}
+    </span>
+    <svg
+      class="w-4 h-4 text-gray-400 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  </div>
+
+  <!-- Calendar panel -->
+  @if (isOpen()) {
+    <div
+      data-testid="calendar-panel"
+      class="absolute z-50 mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-200 p-3"
+    >
+      <!-- Header: prev / month-year label / next -->
+      <div class="flex items-center justify-between mb-2">
+        <button
+          type="button"
+          data-testid="prev-month-button"
+          class="h-7 w-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+          (click)="prevMonth()"
+          aria-label="Previous month"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <span
+          data-testid="month-year-label"
+          class="text-sm font-semibold text-gray-900"
+        >
+          {{ monthYearLabel() }}
+        </span>
+
+        <button
+          type="button"
+          data-testid="next-month-button"
+          class="h-7 w-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+          (click)="nextMonth()"
+          aria-label="Next month"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Weekday headers -->
+      <div class="grid grid-cols-7 gap-1 mb-1">
+        @for (day of weekdays; track day) {
+          <div class="h-8 w-8 flex items-center justify-center text-xs font-medium text-gray-500">
+            {{ day }}
+          </div>
+        }
+      </div>
+
+      <!-- Day grid -->
+      <div class="grid grid-cols-7 gap-1">
+        @for (day of daysInGrid(); track day.date.toISOString()) {
+          <button
+            type="button"
+            [attr.data-testid]="getDayTestId(day)"
+            [attr.aria-disabled]="day.isDisabled ? 'true' : null"
+            [attr.aria-label]="day.date.toDateString()"
+            [class]="getDayClass(day)"
+            (click)="selectDay(day)"
+          >
+            {{ day.isCurrentMonth ? day.dayOfMonth : '' }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>

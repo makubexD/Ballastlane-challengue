@@ -9,12 +9,13 @@ import {
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Task, CreateTaskRequest, UpdateTaskRequest } from '../../models/task.model';
 import { futureDateValidator } from '../../../../shared/validators/future-date.validator';
+import { DatePickerComponent } from '../../../../shared/ui/date-picker/date-picker.component';
 
 @Component({
   selector: 'app-task-form',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, DatePickerComponent],
   templateUrl: './task-form.component.html'
 })
 export class TaskFormComponent {
