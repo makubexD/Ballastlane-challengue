@@ -42,23 +42,24 @@ public static class InfrastructureServiceExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>();
+        var provider = configuration.GetSection(DatabaseSettings.SectionName)["Provider"] ?? "PostgreSQL";
+
+        IDbProviderRegistrar[] providerRegistry =
+        [
+            new PostgreSqlProviderRegistrar(),
+            new SqliteProviderRegistrar(),
+            // Add new providers here — no other code changes needed
+        ];
+
+        var registrar = providerRegistry.FirstOrDefault(r =>
+            string.Equals(r.ProviderName, provider, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException(
+                $"No database provider registered for '{provider}'. " +
+                $"Available: {string.Join(", ", providerRegistry.Select(r => r.ProviderName))}");
+
+        registrar.Register(services);
+
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
-
-        services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
-        services.AddSingleton<IJwtProvider, JwtProvider>();
-
-        // NpgsqlUnitOfWork is scoped — one per HTTP request.
-        // UnitOfWorkMiddleware calls BeginAsync before each request reaches a controller.
-        services.AddScoped<NpgsqlUnitOfWork>();
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<NpgsqlUnitOfWork>());
-
-        // ITaskRepository resolves to the transactional repository held inside NpgsqlUnitOfWork.
-        // BeginAsync (called by UnitOfWorkMiddleware) must run before TaskService is invoked.
-        services.AddScoped<ITaskRepository>(sp => sp.GetRequiredService<NpgsqlUnitOfWork>().TaskRepository);
-
-        // AuthService uses IUserRepository directly (no write transaction needed there).
-        services.AddScoped<IUserRepository, SqlUserRepository>();
 
         services.AddSingleton<TaskValidator>();
         services.AddSingleton<AuthValidator>();

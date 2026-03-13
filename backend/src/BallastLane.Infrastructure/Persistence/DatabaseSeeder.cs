@@ -1,9 +1,10 @@
+using System.Data;
+using System.Data.Common;
 using BallastLane.Domain.Interfaces;
 using BallastLane.Domain.ValueObjects;
 using BallastLane.Infrastructure.Common;
 using BallastLane.Infrastructure.Settings;
 using Microsoft.Extensions.Options;
-using Npgsql;
 
 namespace BallastLane.Infrastructure.Persistence;
 
@@ -11,15 +12,17 @@ public sealed class DatabaseSeeder(
     IDbConnectionFactory connectionFactory,
     IPasswordHasher passwordHasher,
     IOptions<SeedSettings> seedOptions,
+    IOptions<DatabaseSettings> dbOptions,
     IDateTimeProvider dateTimeProvider)
 {
     private readonly SeedSettings _seed = seedOptions.Value;
+    private readonly string _provider = dbOptions.Value.Provider;
 
     private const string CountUsersQuery = "SELECT COUNT(*) FROM users;";
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = (NpgsqlConnection)await connectionFactory.CreateAsync(cancellationToken);
+        await using var connection = (DbConnection)await connectionFactory.CreateAsync(cancellationToken);
 
         var userCount = await CountUsersAsync(connection, cancellationToken);
         if (userCount > 0)
@@ -33,30 +36,32 @@ public sealed class DatabaseSeeder(
         await InsertDemoTasksAsync(connection, userId, now, cancellationToken);
     }
 
-    private static async Task<long> CountUsersAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
+    private static async Task<long> CountUsersAsync(DbConnection connection, CancellationToken cancellationToken)
     {
-        await using var command = new NpgsqlCommand(CountUsersQuery, connection);
+        using var command = connection.CreateCommand();
+        command.CommandText = CountUsersQuery;
         var result = await command.ExecuteScalarAsync(cancellationToken);
-        return (long)(result ?? 0L);
+        return Convert.ToInt64(result ?? 0L);
     }
 
     private async Task InsertDemoUserAsync(
-        NpgsqlConnection connection,
+        DbConnection connection,
         Guid userId,
         string passwordHash,
         DateTime now,
         CancellationToken cancellationToken)
     {
-        await using var command = new NpgsqlCommand(UserSql.Insert, connection);
-        command.Parameters.AddWithValue("@id", userId);
-        command.Parameters.AddWithValue("@email", _seed.DemoUserEmail);
-        command.Parameters.AddWithValue("@password_hash", passwordHash);
-        command.Parameters.AddWithValue("@created_at", now);
+        using var command = connection.CreateCommand();
+        command.CommandText = UserSql.Insert;
+        AddParam(command, "@id", FormatGuid(userId));
+        AddParam(command, "@email", _seed.DemoUserEmail);
+        AddParam(command, "@password_hash", passwordHash);
+        AddParam(command, "@created_at", FormatDateTime(now));
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    private static async Task InsertDemoTasksAsync(
-        NpgsqlConnection connection,
+    private async Task InsertDemoTasksAsync(
+        DbConnection connection,
         Guid userId,
         DateTime now,
         CancellationToken cancellationToken)
@@ -70,16 +75,38 @@ public sealed class DatabaseSeeder(
 
         foreach (var (id, title, description, status, dueDate) in tasks)
         {
-            await using var command = new NpgsqlCommand(TaskSql.Insert, connection);
-            command.Parameters.AddWithValue("@id", id);
-            command.Parameters.AddWithValue("@title", title);
-            command.Parameters.AddWithValue("@description", description);
-            command.Parameters.AddWithValue("@status", status);
-            command.Parameters.AddWithValue("@due_date", dueDate);
-            command.Parameters.AddWithValue("@user_id", userId);
-            command.Parameters.AddWithValue("@created_at", now);
-            command.Parameters.AddWithValue("@updated_at", now);
+            using var command = connection.CreateCommand();
+            command.CommandText = TaskSql.Insert;
+            AddParam(command, "@id", FormatGuid(id));
+            AddParam(command, "@title", title);
+            AddParam(command, "@description", description);
+            AddParam(command, "@status", status);
+            AddParam(command, "@due_date", FormatDateTime(dueDate));
+            AddParam(command, "@user_id", FormatGuid(userId));
+            AddParam(command, "@created_at", FormatDateTime(now));
+            AddParam(command, "@updated_at", FormatDateTime(now));
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
     }
+
+    private static void AddParam(IDbCommand command, string name, object value)
+    {
+        var param = command.CreateParameter();
+        param.ParameterName = name;
+        param.Value = value;
+        command.Parameters.Add(param);
+    }
+
+    /// <summary>
+    /// SQLite stores GUIDs as TEXT (UUID dash format); PostgreSQL has a native UUID type.
+    /// Npgsql auto-converts <see cref="Guid"/> to UUID. For provider-agnostic code, always pass strings.
+    /// </summary>
+    private string FormatGuid(Guid value) =>
+        _provider == "SQLite" ? value.ToString("D") : value.ToString("D");
+
+    /// <summary>
+    /// SQLite stores DateTimes as ISO 8601 TEXT; PostgreSQL has native TIMESTAMPTZ.
+    /// Npgsql accepts <see cref="DateTime"/> directly. Pass ISO 8601 string for both to stay provider-agnostic.
+    /// </summary>
+    private string FormatDateTime(DateTime value) => value.ToString("O");
 }

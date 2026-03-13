@@ -70,13 +70,17 @@ function Write-Banner {
 
 function Write-Summary {
     $line = '=' * 50
+    $dbLabel = if ($useSqlite) { 'SQLite (local file)' } else { "PostgreSQL @ $($env:DB_HOST):$hostDbPort" }
     Write-Host "`n$line" -ForegroundColor Green
     Write-Host '  All services are running!' -ForegroundColor Green
     Write-Host ''
     Write-Host "  Frontend  -->  http://localhost:$($Config.FrontendPort)" -ForegroundColor White
     Write-Host "  API       -->  http://localhost:$($Config.ApiPort)" -ForegroundColor White
     Write-Host "  Swagger   -->  http://localhost:$($Config.ApiPort)/swagger" -ForegroundColor White
-    Write-Host "  pgAdmin   -->  http://localhost:$($Config.PgAdminPort)" -ForegroundColor White
+    if (-not $useSqlite) {
+        Write-Host "  pgAdmin   -->  http://localhost:$($Config.PgAdminPort)" -ForegroundColor White
+    }
+    Write-Host "  DB        -->  $dbLabel" -ForegroundColor White
     Write-Host ''
     Write-Host '  Demo: demo@ballastlane.com  /  Demo@1234' -ForegroundColor Cyan
     Write-Host ''
@@ -217,7 +221,9 @@ function Stop-PodmanTunnel {
 function Stop-Stack {
     param([string]$ErrorMsg)
     Write-Err $ErrorMsg
-    Invoke-Tool $ComposeEngine.Cmd ($ComposeEngine.Args + @('down', '--remove-orphans'))
+    if ($ComposeEngine) {
+        Invoke-Tool $ComposeEngine.Cmd ($ComposeEngine.Args + @('down', '--remove-orphans'))
+    }
     Stop-PodmanTunnel
     Set-Location $prevLocation
     exit 1
@@ -302,15 +308,18 @@ Write-Step '[1/5] Validating prerequisites...'
 $availableEngines = @(Get-AvailableEngines)
 
 if ($availableEngines.Count -eq 0) {
-    Write-Err 'No container engine found. Install Docker Desktop (https://docker.com) or Podman (https://podman.io).'
-    exit 1
+    Write-Warn 'No container engine (Docker/Podman) detected.'
+    Write-Info 'Falling back to SQLite — no database server required.'
+    $useSqlite = $true
+    $ContainerEngine = $null
 }
-
-if ($availableEngines.Count -eq 1) {
+elseif ($availableEngines.Count -eq 1) {
+    $useSqlite = $false
     $ContainerEngine = $availableEngines[0]
     Write-Info "Using $ContainerEngine (only engine detected)"
 }
 else {
+    $useSqlite = $false
     Write-Host ''
     Write-Host '  Both Docker and Podman are available. Which engine to use?' -ForegroundColor White
     Write-Host '    [1] Docker' -ForegroundColor Cyan
@@ -320,52 +329,58 @@ else {
     Write-Info "Using $ContainerEngine (selected)"
 }
 
-$engineVer = Invoke-Tool $ContainerEngine @('--version')
-Write-Ok "$ContainerEngine $($engineVer.Output -replace '^.*?([\d]+\.[\d]+\.[\d]+).*$','$1')"
+if (-not $useSqlite) {
+    $engineVer = Invoke-Tool $ContainerEngine @('--version')
+    Write-Ok "$ContainerEngine $($engineVer.Output -replace '^.*?([\d]+\.[\d]+\.[\d]+).*$','$1')"
 
-if ($ContainerEngine -eq 'podman') {
-    $machineList = Invoke-Tool 'podman' @('machine', 'list', '--noheading')
-    if ($machineList.Output -notmatch '\S') {
-        Write-Err 'No Podman machine found. Run: podman machine init && podman machine start'
-        exit 1
-    }
-    $podmanUp = Invoke-Tool 'podman' @('ps')
-    if ($podmanUp.ExitCode -eq 0) {
-        Write-Ok 'Podman machine running'
-    }
-    else {
-        Write-Warn 'Podman machine exists but is not running. Starting it...'
-        Write-Info 'Running: podman machine start (may take up to 60 seconds)...'
-        & podman machine start
-        if ($LASTEXITCODE -ne 0) {
-            Write-Err 'Failed to start Podman machine. If WSL2 is missing: wsl --install (then reboot). To reset: podman machine rm && podman machine init && podman machine start'
+    if ($ContainerEngine -eq 'podman') {
+        $machineList = Invoke-Tool 'podman' @('machine', 'list', '--noheading')
+        if ($machineList.Output -notmatch '\S') {
+            Write-Err 'No Podman machine found. Run: podman machine init && podman machine start'
             exit 1
         }
-        Write-Ok 'Podman machine started'
+        $podmanUp = Invoke-Tool 'podman' @('ps')
+        if ($podmanUp.ExitCode -eq 0) {
+            Write-Ok 'Podman machine running'
+        }
+        else {
+            Write-Warn 'Podman machine exists but is not running. Starting it...'
+            Write-Info 'Running: podman machine start (may take up to 60 seconds)...'
+            & podman machine start
+            if ($LASTEXITCODE -ne 0) {
+                Write-Err 'Failed to start Podman machine. If WSL2 is missing: wsl --install (then reboot). To reset: podman machine rm && podman machine init && podman machine start'
+                exit 1
+            }
+            Write-Ok 'Podman machine started'
+        }
     }
-}
 
-$enginePs = Invoke-Tool $ContainerEngine @('ps')
-if ($enginePs.ExitCode -ne 0) {
-    Write-Err "$ContainerEngine daemon is not running. Start it and try again."
-    exit 1
-}
-Write-Ok "$ContainerEngine daemon running"
-
-if ($ContainerEngine -eq 'podman') { Initialize-Podman }
-
-$ComposeEngine = Get-ComposeForEngine $ContainerEngine
-if ($null -eq $ComposeEngine) {
-    $composeHint = if ($ContainerEngine -eq 'podman') {
-        'Install Podman Desktop with the Compose extension.'
-    } else {
-        'Install Docker Compose: https://docs.docker.com/compose/install/'
+    $enginePs = Invoke-Tool $ContainerEngine @('ps')
+    if ($enginePs.ExitCode -ne 0) {
+        Write-Err "$ContainerEngine daemon is not running. Start it and try again."
+        exit 1
     }
-    Write-Err "No compose tool found for $ContainerEngine. $composeHint"
-    exit 1
+    Write-Ok "$ContainerEngine daemon running"
+
+    if ($ContainerEngine -eq 'podman') { Initialize-Podman }
+
+    $ComposeEngine = Get-ComposeForEngine $ContainerEngine
+    if ($null -eq $ComposeEngine) {
+        $composeHint = if ($ContainerEngine -eq 'podman') {
+            'Install Podman Desktop with the Compose extension.'
+        } else {
+            'Install Docker Compose: https://docs.docker.com/compose/install/'
+        }
+        Write-Err "No compose tool found for $ContainerEngine. $composeHint"
+        exit 1
+    }
+    $composeLabel = (@($ComposeEngine.Cmd) + $ComposeEngine.Args) -join ' '
+    Write-Ok "Compose: $composeLabel"
+} else {
+    Write-Ok 'Container engine: SQLite fallback (no container needed)'
+    $ComposeEngine = $null
+    $composeLabel  = $null
 }
-$composeLabel = (@($ComposeEngine.Cmd) + $ComposeEngine.Args) -join ' '
-Write-Ok "Compose: $composeLabel"
 
 $dotnet = Invoke-Tool 'dotnet' @('--version')
 if ($dotnet.ExitCode -ne 0) {
@@ -450,51 +465,57 @@ $frontendProc = $null
 
 try {
 
-$hostDbPort   = Resolve-Port ([int]$env['DB_PORT'])
 $prevLocation = Get-Location
 Set-Location $Root
 
-Write-Info "Running: $composeLabel up -d"
-$dcUp = Invoke-Tool $ComposeEngine.Cmd ($ComposeEngine.Args + @('up', '-d'))
-if ($dcUp.ExitCode -ne 0) {
-    Stop-Stack "Compose failed: $($dcUp.Output)"
-}
+if (-not $useSqlite) {
+    $hostDbPort   = Resolve-Port ([int]$env['DB_PORT'])
 
-$healthElapsed = 0
-Write-Host '  Waiting for PostgreSQL' -NoNewline -ForegroundColor DarkGray
-$dbHealthy = $false
-while ($healthElapsed -lt $Config.DbHealthTimeout) {
-    try {
-        $health = & $ContainerEngine inspect --format='{{.State.Health.Status}}' $Config.DbContainer 2>&1
-        if ($health -and $health.Trim() -eq 'healthy') {
-            Write-Host ' healthy' -ForegroundColor Green
-            $dbHealthy = $true
-            break
-        }
+    Write-Info "Running: $composeLabel up -d"
+    $dcUp = Invoke-Tool $ComposeEngine.Cmd ($ComposeEngine.Args + @('up', '-d'))
+    if ($dcUp.ExitCode -ne 0) {
+        Stop-Stack "Compose failed: $($dcUp.Output)"
     }
-    catch { }
-    Write-Host '.' -NoNewline -ForegroundColor DarkGray
-    Start-Sleep -Seconds 2
-    $healthElapsed += 2
-}
-if (-not $dbHealthy) {
-    Stop-Stack "PostgreSQL did not become healthy in $($Config.DbHealthTimeout)s. Check: $ContainerEngine logs $($Config.DbContainer)"
-}
-Write-Ok "PostgreSQL healthy (port $hostDbPort)"
 
-Write-Info 'Setting DB password from .env...'
-$setPass = Invoke-Tool $ContainerEngine @(
-    'exec', $Config.DbContainer, 'psql',
-    '-U', $env['DB_USER'],
-    '-c', "ALTER USER $($env['DB_USER']) WITH PASSWORD '$($env['DB_PASSWORD'])'"
-)
-if ($setPass.ExitCode -ne 0) {
-    Stop-Stack "Failed to set DB password: $($setPass.Output). Check: $ContainerEngine logs $($Config.DbContainer)"
-}
-Write-Ok "DB password set (user=$($env['DB_USER']))"
+    $healthElapsed = 0
+    Write-Host '  Waiting for PostgreSQL' -NoNewline -ForegroundColor DarkGray
+    $dbHealthy = $false
+    while ($healthElapsed -lt $Config.DbHealthTimeout) {
+        try {
+            $health = & $ContainerEngine inspect --format='{{.State.Health.Status}}' $Config.DbContainer 2>&1
+            if ($health -and $health.Trim() -eq 'healthy') {
+                Write-Host ' healthy' -ForegroundColor Green
+                $dbHealthy = $true
+                break
+            }
+        }
+        catch { }
+        Write-Host '.' -NoNewline -ForegroundColor DarkGray
+        Start-Sleep -Seconds 2
+        $healthElapsed += 2
+    }
+    if (-not $dbHealthy) {
+        Stop-Stack "PostgreSQL did not become healthy in $($Config.DbHealthTimeout)s. Check: $ContainerEngine logs $($Config.DbContainer)"
+    }
+    Write-Ok "PostgreSQL healthy (port $hostDbPort)"
 
-Write-Ok "pgAdmin ready (port $($Config.PgAdminPort))"
-Stop-PodmanTunnel
+    Write-Info 'Setting DB password from .env...'
+    $setPass = Invoke-Tool $ContainerEngine @(
+        'exec', $Config.DbContainer, 'psql',
+        '-U', $env['DB_USER'],
+        '-c', "ALTER USER $($env['DB_USER']) WITH PASSWORD '$($env['DB_PASSWORD'])'"
+    )
+    if ($setPass.ExitCode -ne 0) {
+        Stop-Stack "Failed to set DB password: $($setPass.Output). Check: $ContainerEngine logs $($Config.DbContainer)"
+    }
+    Write-Ok "DB password set (user=$($env['DB_USER']))"
+
+    Write-Ok "pgAdmin ready (port $($Config.PgAdminPort))"
+    Stop-PodmanTunnel
+} else {
+    $hostDbPort = 0
+    Write-Ok 'Database: SQLite (file-based, no container needed)'
+}
 
 Set-Location $prevLocation
 
@@ -505,13 +526,21 @@ Write-Step '[4/5] Starting services...'
 $backendDir  = Join-Path $Root 'backend'
 $frontendDir = Join-Path $Root 'frontend'
 
-    $dbHost  = if ($env['DB_HOST'] -eq 'localhost') { '127.0.0.1' } else { $env['DB_HOST'] }
-    $connStr = "Host=$dbHost;Port=$hostDbPort;Database=$($env['DB_NAME']);" +
-               "Username=$($env['DB_USER']);Password=$($env['DB_PASSWORD'])"
+    if ($useSqlite) {
+        $dbPath = Join-Path $Root 'ballastlane.sqlite'
+        $env:ConnectionStrings__Database = "Data Source=$dbPath"
+        $env:ConnectionStrings__Provider  = 'SQLite'
+        $connStr = $env:ConnectionStrings__Database
+        Write-Info "SQLite database: $dbPath"
+    } else {
+        $dbHost  = if ($env['DB_HOST'] -eq 'localhost') { '127.0.0.1' } else { $env['DB_HOST'] }
+        $connStr = "Host=$dbHost;Port=$hostDbPort;Database=$($env['DB_NAME']);" +
+                   "Username=$($env['DB_USER']);Password=$($env['DB_PASSWORD'])"
 
-    Set-AppSettings (Join-Path $backendDir $Config.AppSettingsSrc) $connStr
-    Set-AppSettings (Join-Path $backendDir $Config.AppSettingsBin) $connStr
-    Write-Info "appsettings.json patched (DB: $($env['DB_USER'])@${dbHost}:${hostDbPort}/$($env['DB_NAME']))"
+        Set-AppSettings (Join-Path $backendDir $Config.AppSettingsSrc) $connStr
+        Set-AppSettings (Join-Path $backendDir $Config.AppSettingsBin) $connStr
+        Write-Info "appsettings.json patched (DB: $($env['DB_USER'])@${dbHost}:${hostDbPort}/$($env['DB_NAME']))"
+    }
 
     Write-Info 'Building backend (first run may take a moment)...'
     $buildResult = Invoke-Tool 'dotnet' @(
@@ -524,9 +553,11 @@ $frontendDir = Join-Path $Root 'frontend'
     }
     Write-Ok 'Backend built'
 
+    $providerEnv = if ($useSqlite) { "`$env:ConnectionStrings__Provider = 'SQLite'; " } else { '' }
     $backendCmd = "Set-Location '$backendDir'; " +
         "`$env:ASPNETCORE_ENVIRONMENT = 'Development'; " +
         "`$env:ConnectionStrings__Database = '$connStr'; " +
+        $providerEnv +
         "`$env:JWT_SECRET = '$($env['JWT_SECRET'])'; " +
         "Write-Host 'Starting backend...' -ForegroundColor Cyan; " +
         "dotnet run --project $($Config.BackendProject) --no-build --no-launch-profile --urls http://localhost:$($Config.ApiPort)"
