@@ -1,6 +1,6 @@
-import { Component, ChangeDetectionStrategy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Task } from '../../services/task.service';
+import { Task } from '../../models/task.model';
 import { BadgeComponent } from '../../../../shared/ui/badge.component';
 
 @Component({
@@ -13,13 +13,13 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
       <div class="flex items-start justify-between gap-2">
         <div class="flex-1 min-w-0">
           <h3 class="text-sm font-medium text-gray-900 truncate" data-testid="task-title">
-            {{ task.title }}
+            {{ task().title }}
           </h3>
           <p class="mt-1 text-xs text-gray-500" data-testid="task-due-date">
-            Due: {{ task.dueDate | date:'MMM d, yyyy' }}
+            Due: {{ task().dueDate | date:'MMM d, yyyy' }}
           </p>
         </div>
-        <app-badge [status]="task.status" />
+        <app-badge [status]="task().status" />
       </div>
       <div class="mt-3 flex justify-end gap-2">
         <button
@@ -43,17 +43,17 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
   `
 })
 export class TaskCardComponent {
-  @Input() task!: Task;
-  @Output() editTask = new EventEmitter<Task>();
-  @Output() deleteTask = new EventEmitter<string>();
+  task = input.required<Task>();
+  editTask = output<Task>();
+  deleteTask = output<string>();
 
   onEdit(): void {
-    this.editTask.emit(this.task);
+    this.editTask.emit(this.task());
   }
 
   onDelete(): void {
     if (window.confirm('Delete this task?')) {
-      this.deleteTask.emit(this.task.id);
+      this.deleteTask.emit(this.task().id);
     }
   }
 }

@@ -3,22 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, catchError, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { LoginRequest, RegisterRequest, UserProfile } from './auth.model';
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-}
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  createdAt: string;
-}
+export type { LoginRequest, RegisterRequest, UserProfile };
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
