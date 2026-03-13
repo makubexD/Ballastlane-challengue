@@ -24,6 +24,8 @@ coverage/
 appsettings.Development.json
 appsettings.Production.json
 
+*.sqlite
+
 # Node / Angular
 node_modules/
 dist/

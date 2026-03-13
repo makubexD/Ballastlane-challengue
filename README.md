@@ -7,8 +7,11 @@ A full-stack task management application built with **ASP.NET Core 8** (Clean Ar
 ## One-Command Start
 
 ```powershell
-# PowerShell
+# PowerShell — PostgreSQL (requires Docker or Podman)
 ./start-dev.ps1
+
+# PowerShell — SQLite (no container required)
+./start-dev-sqlite.ps1
 
 # Windows CMD or double-click
 start-dev.bat
@@ -17,7 +20,7 @@ start-dev.bat
 ./start-dev.sh
 ```
 
-Validates all prerequisites, auto-generates `.env` with a random JWT secret if missing, starts PostgreSQL via Docker, and launches backend + frontend in parallel terminal windows. See [full setup details](#quick-start) below.
+`start-dev.ps1` validates prerequisites, auto-generates `.env` with a random JWT secret if missing, and starts the database + backend + frontend in parallel. If Docker/Podman is not detected it automatically falls back to SQLite — no container required. See [full setup details](#quick-start) below.
 
 ---
 
@@ -25,7 +28,7 @@ Validates all prerequisites, auto-generates `.env` with a random JWT secret if m
 
 | Tool | Version |
 |------|---------|
-| Docker Desktop or Podman | Docker 4.x+ / Podman 5.x+ |
+| Docker Desktop or Podman | Docker 4.x+ / Podman 5.x+ *(optional — SQLite fallback if absent)* |
 | .NET SDK | 8.0+ (9 and 10 also accepted) |
 | Node.js | 22 LTS |
 | Angular CLI | 20.x (`npm i -g @angular/cli`) |
@@ -43,6 +46,7 @@ Validates all prerequisites, auto-generates `.env` with a random JWT secret if m
 
 ### 1. Start the database
 
+**PostgreSQL (requires Docker or Podman):**
 ```bash
 cp .env.example .env
 docker-compose up -d
@@ -50,6 +54,10 @@ docker-compose up -d
 
 PostgreSQL 16 is available on `localhost:5432`.
 pgAdmin is available at `http://localhost:5050` (email: `admin@ballastlane.com` / password: `admin`).
+
+**SQLite (no container required):**
+
+Skip this step — the API creates `ballastlane.sqlite` automatically on first launch.
 
 ### 2. Start the backend API
 
@@ -141,7 +149,7 @@ BallastLaneApp/
 │   ├── src/
 │   │   ├── BallastLane.Domain/         # Entities, interfaces, Result<T> — no external deps
 │   │   ├── BallastLane.Application/    # Services, DTOs, validators — references Domain only
-│   │   ├── BallastLane.Infrastructure/ # Npgsql repositories, JWT, BCrypt — implements Domain interfaces
+│   │   ├── BallastLane.Infrastructure/ # ADO.NET repositories (PostgreSQL + SQLite), JWT, BCrypt
 │   │   └── BallastLane.API/            # ASP.NET Core controllers, middleware, Program.cs
 │   └── tests/
 │       ├── BallastLane.Tests/          # Unit tests (xUnit + Moq, no DB)
@@ -152,18 +160,13 @@ BallastLaneApp/
 │           └── Infrastructure/
 └── frontend/
     └── src/app/
-        ├── core/                       # Auth guard, JWT interceptor, layout
+        ├── core/                       # Auth guard, interceptors (auth + CSRF), shell
         ├── shared/                     # Reusable UI components, validators
         └── features/
             ├── auth/                   # Login + Register
-            └── tasks/                  # Task list, card, form
+            └── tasks/                  # Task list, card, form, pagination
 ```
 
-**Key constraints:**
-- No Entity Framework, no Dapper, no MediatR — raw Npgsql ADO.NET only
-- No ASP.NET Core Identity — custom JWT (`System.IdentityModel.Tokens.Jwt`)
-- All code follows TDD (Red-Green-Refactor) with xUnit + Moq (backend) and vitest 4 + TestBed (frontend)
-- **Test coverage:** 153 backend unit tests + 10 integration tests + 30 frontend tests — all green
 
 ---
 
