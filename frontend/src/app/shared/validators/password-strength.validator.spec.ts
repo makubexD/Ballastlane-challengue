@@ -54,4 +54,20 @@ describe('passwordStrengthValidator', () => {
 
     expect(result).toBeNull();
   });
+
+  it('should return null for a password that is exactly 8 characters and meets all requirements', () => {
+    const control = new FormControl('Aa123456');
+
+    const result = passwordStrengthValidator(control);
+
+    expect(result).toBeNull();
+  });
+
+  it('should return minLength error when password is too short even if it has no uppercase', () => {
+    const control = new FormControl('abc1');
+
+    const result = passwordStrengthValidator(control);
+
+    expect(result).toEqual({ minLength: true });
+  });
 });
