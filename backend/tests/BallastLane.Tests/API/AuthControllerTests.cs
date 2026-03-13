@@ -6,10 +6,8 @@ using BallastLane.Domain.Common;
 using BallastLane.Domain.Entities;
 using BallastLane.Infrastructure.Settings;
 using BallastLane.Tests.TestData;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -20,15 +18,11 @@ public sealed class AuthControllerTests
     private const string AlreadyExistsError = "An account with this email already exists.";
     private const string PasswordTooShortError = "Password must be at least 8 characters.";
 
-    private static (AuthController sut, Mock<IAuthService> authService, DefaultHttpContext httpContext) BuildSut(
-        bool isDevelopment = true)
+    private static (AuthController sut, Mock<IAuthService> authService, DefaultHttpContext httpContext) BuildSut()
     {
         var authService = new Mock<IAuthService>();
         var currentUser = new Mock<ICurrentUserService>();
         currentUser.Setup(c => c.UserId).Returns(TestConstants.ValidUserId);
-
-        var env = new Mock<IWebHostEnvironment>();
-        env.Setup(e => e.EnvironmentName).Returns(isDevelopment ? Environments.Development : Environments.Production);
 
         var jwtOptions = Options.Create(new JwtSettings
         {
@@ -36,7 +30,7 @@ public sealed class AuthControllerTests
             ExpiryMinutes = 60
         });
 
-        var sut = new AuthController(authService.Object, currentUser.Object, env.Object, jwtOptions);
+        var sut = new AuthController(authService.Object, currentUser.Object, jwtOptions);
         var httpContext = new DefaultHttpContext();
         sut.ControllerContext = new ControllerContext { HttpContext = httpContext };
 

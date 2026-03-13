@@ -16,7 +16,6 @@ namespace BallastLane.API.Controllers;
 public sealed class AuthController(
     IAuthService authService,
     ICurrentUserService currentUser,
-    IWebHostEnvironment env,
     IOptions<JwtSettings> jwtOptions) : ControllerBase
 {
     private readonly JwtSettings _jwtSettings = jwtOptions.Value;
@@ -37,8 +36,8 @@ public sealed class AuthController(
         Response.Cookies.Append("access_token", result.Value!.Token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = !env.IsDevelopment(),
-            SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
+            Secure = Request.IsHttps,
+            SameSite = Request.IsHttps ? SameSiteMode.Strict : SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.ExpiryMinutes)
         });
         return Ok(new { result.Value!.UserId, result.Value!.ExpiresAt });

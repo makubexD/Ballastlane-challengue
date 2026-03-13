@@ -78,11 +78,10 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
-var isDevelopment = builder.Environment.IsDevelopment();
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
-    options.MinimumSameSitePolicy = isDevelopment ? SameSiteMode.Lax : SameSiteMode.Strict;
-    options.Secure = isDevelopment ? CookieSecurePolicy.None : CookieSecurePolicy.Always;
+    options.MinimumSameSitePolicy = SameSiteMode.Lax;
+    options.Secure = CookieSecurePolicy.SameAsRequest;
 });
 
 builder.Services.AddAuthorization();
