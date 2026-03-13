@@ -57,4 +57,13 @@ describe('PaginationComponent', () => {
     expect(emitSpy).toHaveBeenCalledWith(3);
     expect(emitSpy).toHaveBeenCalledOnce();
   });
+
+  it('should display "Page X of Y" when page and totalPages inputs are set', () => {
+    fixture.componentRef.setInput('page', 2);
+    fixture.componentRef.setInput('totalPages', 5);
+    fixture.detectChanges();
+
+    const indicator = fixture.nativeElement.querySelector('[data-testid="page-indicator"]');
+    expect(indicator?.textContent?.trim()).toBe('Page 2 of 5');
+  });
 });

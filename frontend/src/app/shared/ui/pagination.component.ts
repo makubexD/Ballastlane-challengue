@@ -14,7 +14,7 @@ import { Component, ChangeDetectionStrategy, input, output } from '@angular/core
       >
         Previous
       </button>
-      <span class="text-sm text-gray-600">Page {{ page() }}</span>
+      <span data-testid="page-indicator" class="text-sm text-gray-600">Page {{ page() }} of {{ totalPages() }}</span>
       <button
         data-testid="next-button"
         [disabled]="!hasNextPage()"
