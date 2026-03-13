@@ -24,13 +24,13 @@ describe('TaskService', () => {
   it('getAll() — should fetch /api/tasks with page params and populate tasks signal', () => {
     service.getAll();
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=20`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=5`);
     expect(req.request.method).toBe('GET');
     req.flush({
       items: FIXTURE_TASKS,
       totalCount: FIXTURE_TASKS.length,
       page: 1,
-      pageSize: 20,
+      pageSize: 5,
       totalPages: 1,
       hasNextPage: false,
       hasPreviousPage: false
@@ -40,7 +40,7 @@ describe('TaskService', () => {
     expect(service.isLoading()).toBe(false);
   });
 
-  it('create() — should POST /api/tasks and reload current page', () => {
+  it('create() — should POST /api/tasks then reload current page via getAll()', () => {
     service.tasks.set([FIXTURE_TASKS[0]]);
 
     const createReq = {
@@ -60,9 +60,9 @@ describe('TaskService', () => {
     post.flush(newTask);
 
     // create() calls getAll(currentPage) → expect follow-up GET for fresh pagination
-    const get = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=20`);
     const updatedItems = [newTask, FIXTURE_TASKS[0]];
-    get.flush({ items: updatedItems, totalCount: 2, page: 1, pageSize: 20, totalPages: 1, hasNextPage: false, hasPreviousPage: false });
+    const get = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=5`);
+    get.flush({ items: updatedItems, totalCount: 2, page: 1, pageSize: 5, totalPages: 1, hasNextPage: false, hasPreviousPage: false });
 
     expect(service.tasks()).toEqual(updatedItems);
     expect(service.totalCount()).toBe(2);
@@ -78,12 +78,12 @@ describe('TaskService', () => {
     httpMock.expectOne(`${environment.apiUrl}/api/tasks/${FIXTURE_TASKS[0].id}`).flush(null);
 
     // tasks is empty on page > 1 → should call getAll(1)
-    const get = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=20`);
+    const get = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=5`);
     get.flush({
       items: FIXTURE_TASKS,
       totalCount: FIXTURE_TASKS.length,
       page: 1,
-      pageSize: 20,
+      pageSize: 5,
       totalPages: 1,
       hasNextPage: false,
       hasPreviousPage: false
@@ -93,7 +93,7 @@ describe('TaskService', () => {
     expect(service.tasks()).toEqual(FIXTURE_TASKS);
   });
 
-  it('delete(id) — should remove task from signal immediately and revert on API error', () => {
+  it('delete(id) — should remove task from signal immediately, refresh page, and revert on API error', () => {
     service.tasks.set([...FIXTURE_TASKS]);
 
     service.delete('1');
@@ -104,6 +104,34 @@ describe('TaskService', () => {
 
     const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks/1`);
     expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+
+    // After successful delete on page 1 with remaining tasks → getAll(1)
+    const get = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=5`);
+    get.flush({
+      items: FIXTURE_TASKS.filter(t => t.id !== '1'),
+      totalCount: 2,
+      page: 1,
+      pageSize: 5,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false
+    });
+
+    expect(service.tasks()).toHaveLength(2);
+    expect(service.tasks().find(t => t.id === '1')).toBeUndefined();
+  });
+
+  it('delete(id) — should revert optimistic removal on API error', () => {
+    service.tasks.set([...FIXTURE_TASKS]);
+
+    service.delete('1');
+
+    // Optimistically removed
+    expect(service.tasks().find(t => t.id === '1')).toBeUndefined();
+    expect(service.tasks()).toHaveLength(2);
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks/1`);
 
     // Simulate error — should revert
     req.flush('Error', { status: 500, statusText: 'Internal Server Error' });
@@ -115,7 +143,7 @@ describe('TaskService', () => {
   it('should set error signal when getAll() fails', () => {
     service.getAll();
 
-    const url = `${environment.apiUrl}/api/tasks?page=1&pageSize=20`;
+    const url = `${environment.apiUrl}/api/tasks?page=1&pageSize=5`;
     // retry(1) causes two requests: flush both with error to exhaust retries
     httpMock.expectOne(url).flush(null, { status: 500, statusText: 'Server Error' });
     httpMock.expectOne(url).flush(null, { status: 500, statusText: 'Server Error' });
