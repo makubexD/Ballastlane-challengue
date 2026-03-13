@@ -31,27 +31,33 @@ describe('TaskCardComponent', () => {
     expect(badge?.textContent?.trim()).toBe('Todo');
   });
 
-  it('should emit deleteTask when delete is confirmed', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('should emit deleteTask with the task id when delete is confirmed', () => {
     const emitSpy = vi.spyOn(component.deleteTask, 'emit');
 
-    const btn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
-      '[data-testid="delete-task-button"]'
-    );
-    btn?.click();
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="delete-button"]')
+      ?.click();
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="confirm-delete-button"]')
+      ?.click();
 
     expect(emitSpy).toHaveBeenCalledOnce();
     expect(emitSpy).toHaveBeenCalledWith('1');
   });
 
-  it('should not emit deleteTask when delete is cancelled', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+  it('should not emit deleteTask when cancel button is clicked after delete', () => {
     const emitSpy = vi.spyOn(component.deleteTask, 'emit');
 
-    const btn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
-      '[data-testid="delete-task-button"]'
-    );
-    btn?.click();
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="delete-button"]')
+      ?.click();
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="cancel-delete-button"]')
+      ?.click();
 
     expect(emitSpy).not.toHaveBeenCalled();
   });
@@ -59,10 +65,9 @@ describe('TaskCardComponent', () => {
   it('should emit editTask with the task when edit button is clicked', () => {
     const emitSpy = vi.spyOn(component.editTask, 'emit');
 
-    const btn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
-      '[data-testid="edit-task-button"]'
-    );
-    btn?.click();
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="edit-button"]')
+      ?.click();
 
     expect(emitSpy).toHaveBeenCalledOnce();
     expect(emitSpy).toHaveBeenCalledWith(FIXTURE_TASKS[0]);
