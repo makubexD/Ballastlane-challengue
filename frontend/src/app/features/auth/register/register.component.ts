@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../core/auth/auth.service';
 import { passwordStrengthValidator } from '../../../shared/validators/password-strength.validator';
 
@@ -26,8 +27,13 @@ export class RegisterComponent {
   readonly showPassword = signal(false);
   readonly submitted = signal(false);
 
+  readonly passwordValue = toSignal(
+    this.form.controls.password.valueChanges,
+    { initialValue: this.form.controls.password.value }
+  );
+
   readonly passwordStrength = computed(() => {
-    const pw = this.form.controls.password.value ?? '';
+    const pw = this.passwordValue() ?? '';
     let score = 0;
     if (pw.length >= 8) score++;
     if (/[A-Z]/.test(pw)) score++;
@@ -41,12 +47,12 @@ export class RegisterComponent {
   );
 
   readonly strengthColor = computed(() =>
-    (['', 'bg-red-400', 'bg-yellow-400', 'bg-brand-400', 'bg-green-500'] as const)[this.passwordStrength()]
+    (['', 'bg-red-400', 'bg-yellow-400', 'bg-brand-500', 'bg-green-500'] as const)[this.passwordStrength()]
   );
 
   readonly segmentClasses = computed(() => {
     const strength = this.passwordStrength();
-    const colors = ['bg-gray-200', 'bg-red-400', 'bg-yellow-400', 'bg-brand-400', 'bg-green-500'];
+    const colors = ['bg-gray-200', 'bg-red-400', 'bg-yellow-400', 'bg-brand-500', 'bg-green-500'];
     const activeColor = strength > 0 ? colors[strength] : colors[0];
     return [1, 2, 3, 4].map(seg =>
       `flex-1 rounded-full transition-colors duration-200 ${seg <= strength ? activeColor : 'bg-gray-200'}`
