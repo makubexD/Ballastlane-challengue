@@ -81,4 +81,54 @@ describe('TaskService', () => {
     expect(service.tasks()).toHaveLength(3);
     expect(service.tasks().find(t => t.id === '1')).toBeDefined();
   });
+
+  it('should set error signal when getAll() fails', () => {
+    service.getAll();
+
+    const url = `${environment.apiUrl}/api/tasks?page=1&pageSize=20`;
+    // retry(1) causes two requests: flush both with error to exhaust retries
+    httpMock.expectOne(url).flush(null, { status: 500, statusText: 'Server Error' });
+    httpMock.expectOne(url).flush(null, { status: 500, statusText: 'Server Error' });
+
+    expect(service.error()).toBe('Failed to load tasks. Please try again.');
+    expect(service.isLoading()).toBe(false);
+  });
+
+  it('should populate totalCount, totalPages, hasNextPage signals on getAll() success', () => {
+    service.getAll(2, 10);
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=2&pageSize=10`);
+    req.flush({
+      items: FIXTURE_TASKS,
+      totalCount: 30,
+      page: 2,
+      pageSize: 10,
+      totalPages: 3,
+      hasNextPage: true,
+      hasPreviousPage: true
+    });
+
+    expect(service.totalCount()).toBe(30);
+    expect(service.totalPages()).toBe(3);
+    expect(service.hasNextPage()).toBe(true);
+    expect(service.currentPage()).toBe(2);
+  });
+
+  it('should set createError signal when create() fails', () => {
+    service.create({ title: 'Test', description: '', status: 'Todo', dueDate: '2027-01-01T00:00:00Z' });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks`);
+    req.flush(null, { status: 500, statusText: 'Server Error' });
+
+    expect(service.createError()).toBe('Failed to create task.');
+  });
+
+  it('should set updateError signal when update() fails', () => {
+    service.update('1', { title: 'Updated', description: '', status: 'Todo', dueDate: '2027-01-01T00:00:00Z' });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks/1`);
+    req.flush(null, { status: 500, statusText: 'Server Error' });
+
+    expect(service.updateError()).toBe('Failed to update task.');
+  });
 });

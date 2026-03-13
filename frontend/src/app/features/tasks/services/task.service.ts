@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { retry } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { Task, CreateTaskRequest, UpdateTaskRequest, PagedResult } from '../models/task.model';
 
@@ -12,24 +13,42 @@ export class TaskService {
 
   readonly tasks = signal<Task[]>([]);
   readonly isLoading = signal<boolean>(false);
+  readonly error = signal<string | null>(null);
+  readonly createError = signal<string | null>(null);
+  readonly updateError = signal<string | null>(null);
+  readonly totalCount = signal<number>(0);
+  readonly totalPages = signal<number>(1);
+  readonly hasNextPage = signal<boolean>(false);
+  readonly currentPage = signal<number>(1);
 
   getAll(page = 1, pageSize = 20): void {
     this.isLoading.set(true);
-    this.http.get<PagedResult<Task>>(`${this.apiUrl}?page=${page}&pageSize=${pageSize}`).subscribe({
-      next: (result) => {
-        this.tasks.set(result.items);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.isLoading.set(false);
-      }
-    });
+    this.currentPage.set(page);
+    this.http
+      .get<PagedResult<Task>>(`${this.apiUrl}?page=${page}&pageSize=${pageSize}`)
+      .pipe(retry(1))
+      .subscribe({
+        next: (result) => {
+          this.tasks.set(result.items);
+          this.totalCount.set(result.totalCount);
+          this.totalPages.set(result.totalPages);
+          this.hasNextPage.set(result.hasNextPage);
+          this.isLoading.set(false);
+        },
+        error: () => {
+          this.error.set('Failed to load tasks. Please try again.');
+          this.isLoading.set(false);
+        }
+      });
   }
 
   create(req: CreateTaskRequest): void {
     this.http.post<Task>(this.apiUrl, req).subscribe({
       next: (task) => {
         this.tasks.update(tasks => [...tasks, task]);
+      },
+      error: () => {
+        this.createError.set('Failed to create task.');
       }
     });
   }
@@ -40,6 +59,9 @@ export class TaskService {
         this.tasks.update(tasks =>
           tasks.map(t => t.id === id ? updatedTask : t)
         );
+      },
+      error: () => {
+        this.updateError.set('Failed to update task.');
       }
     });
   }
