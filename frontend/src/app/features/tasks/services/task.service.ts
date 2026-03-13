@@ -46,8 +46,8 @@ export class TaskService {
 
   create(req: CreateTaskRequest): void {
     this.http.post<Task>(this.apiUrl, req).subscribe({
-      next: (task) => {
-        this.tasks.update(tasks => [...tasks, task]);
+      next: () => {
+        this.getAll(this.currentPage());
         this.toastService.success('Task created');
       },
       error: () => {
@@ -74,10 +74,14 @@ export class TaskService {
 
   delete(id: string): void {
     const previous = this.tasks();
+    const page = this.currentPage();
     this.tasks.update(tasks => tasks.filter(t => t.id !== id));
     this.http.delete<void>(`${this.apiUrl}/${id}`).subscribe({
       next: () => {
         this.toastService.success('Task deleted');
+        if (this.tasks().length === 0 && page > 1) {
+          this.getAll(page - 1);
+        }
       },
       error: () => {
         this.tasks.set(previous);
