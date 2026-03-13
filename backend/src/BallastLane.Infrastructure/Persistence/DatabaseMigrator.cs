@@ -1,8 +1,9 @@
+using System.Data;
+using System.Data.Common;
 using System.Reflection;
 using BallastLane.Infrastructure.Common;
 using BallastLane.Infrastructure.Settings;
 using Microsoft.Extensions.Options;
-using Npgsql;
 
 namespace BallastLane.Infrastructure.Persistence;
 
@@ -10,18 +11,25 @@ public sealed class DatabaseMigrator(IDbConnectionFactory connectionFactory, IOp
 {
     private readonly string _provider = options.Value.Provider;
 
-    private const string CreateMigrationsTable = """
-        CREATE TABLE IF NOT EXISTS _schema_migrations (
-            version VARCHAR(255) PRIMARY KEY,
-            applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        );
-        """;
+    private string CreateMigrationsTableSql => _provider == "SQLite"
+        ? """
+          CREATE TABLE IF NOT EXISTS _schema_migrations (
+              version TEXT PRIMARY KEY,
+              applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+          );
+          """
+        : """
+          CREATE TABLE IF NOT EXISTS _schema_migrations (
+              version VARCHAR(255) PRIMARY KEY,
+              applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+          """;
 
     public async Task MigrateAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = (NpgsqlConnection)await connectionFactory.CreateAsync(cancellationToken);
+        await using var connection = (DbConnection)await connectionFactory.CreateAsync(cancellationToken);
 
-        await ExecuteAsync(connection, CreateMigrationsTable, cancellationToken);
+        await ExecuteAsync(connection, CreateMigrationsTableSql, cancellationToken);
 
         var applied = await GetAppliedMigrationsAsync(connection, cancellationToken);
         var pending = GetPendingMigrations(applied);
@@ -62,30 +70,34 @@ public sealed class DatabaseMigrator(IDbConnectionFactory connectionFactory, IOp
     }
 
     private static async Task<HashSet<string>> GetAppliedMigrationsAsync(
-        NpgsqlConnection connection, CancellationToken cancellationToken)
+        DbConnection connection, CancellationToken cancellationToken)
     {
         var applied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        await using var command = new NpgsqlCommand(
-            "SELECT version FROM _schema_migrations;", connection);
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT version FROM _schema_migrations;";
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
             applied.Add(reader.GetString(0));
         return applied;
     }
 
     private static async Task RecordMigrationAsync(
-        NpgsqlConnection connection, string version, CancellationToken cancellationToken)
+        DbConnection connection, string version, CancellationToken cancellationToken)
     {
-        await using var command = new NpgsqlCommand(
-            "INSERT INTO _schema_migrations (version) VALUES (@version);", connection);
-        command.Parameters.AddWithValue("@version", version);
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO _schema_migrations (version) VALUES (@version);";
+        var param = command.CreateParameter();
+        param.ParameterName = "@version";
+        param.Value = version;
+        command.Parameters.Add(param);
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static async Task ExecuteAsync(
-        NpgsqlConnection connection, string sql, CancellationToken cancellationToken)
+        DbConnection connection, string sql, CancellationToken cancellationToken)
     {
-        await using var command = new NpgsqlCommand(sql, connection);
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }
