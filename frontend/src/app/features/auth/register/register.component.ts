@@ -44,6 +44,15 @@ export class RegisterComponent {
     (['', 'bg-red-400', 'bg-yellow-400', 'bg-brand-400', 'bg-green-500'] as const)[this.passwordStrength()]
   );
 
+  readonly segmentClasses = computed(() => {
+    const strength = this.passwordStrength();
+    const colors = ['bg-gray-200', 'bg-red-400', 'bg-yellow-400', 'bg-brand-400', 'bg-green-500'];
+    const activeColor = strength > 0 ? colors[strength] : colors[0];
+    return [1, 2, 3, 4].map(seg =>
+      `flex-1 rounded-full transition-colors duration-200 ${seg <= strength ? activeColor : 'bg-gray-200'}`
+    );
+  });
+
   onSubmit(): void {
     this.submitted.set(true);
 

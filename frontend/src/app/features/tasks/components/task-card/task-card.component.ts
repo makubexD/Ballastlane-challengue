@@ -15,7 +15,7 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
           <h3 class="text-xs sm:text-sm font-medium text-gray-900 truncate" data-testid="task-title">
             {{ task().title }}
           </h3>
-          <p class="mt-1 text-xs text-gray-500" data-testid="task-due-date">
+          <p class="mt-1 text-xs text-gray-500 truncate" data-testid="task-due-date">
             Due: {{ task().dueDate | date:'MMM d, yyyy' }}
           </p>
           @if (isOverdue()) {

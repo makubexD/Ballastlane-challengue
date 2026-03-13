@@ -72,4 +72,11 @@ describe('TaskCardComponent', () => {
     expect(emitSpy).toHaveBeenCalledOnce();
     expect(emitSpy).toHaveBeenCalledWith(FIXTURE_TASKS[0]);
   });
+
+  it('should truncate due date text to a single line', () => {
+    const duePara = fixture.nativeElement.querySelector('[data-testid="task-due-date"]');
+
+    expect(duePara).toBeTruthy();
+    expect((duePara as HTMLElement).classList.contains('truncate')).toBe(true);
+  });
 });
