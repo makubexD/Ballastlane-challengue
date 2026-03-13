@@ -153,4 +153,15 @@ describe('DatePickerComponent', () => {
 
     expect(onTouched).toHaveBeenCalledOnce();
   });
+
+  it('should have full-width calendar panel with max-w constraint', async () => {
+    component.open();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector('[data-testid="calendar-panel"]');
+    expect(panel).toBeTruthy();
+    expect(panel.classList.contains('w-full')).toBe(true);
+    expect(panel.classList.contains('max-w-72')).toBe(true);
+  });
 });

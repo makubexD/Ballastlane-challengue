@@ -174,22 +174,11 @@ export class DatePickerComponent implements ControlValueAccessor {
   }
 
   getDayClass(day: CalendarDay): string {
-    const base = 'h-8 w-8 flex items-center justify-center text-xs rounded-full transition-colors';
-
-    if (!day.isCurrentMonth) {
-      return `${base} text-gray-300 cursor-not-allowed`;
-    }
-
-    if (day.isSelected) {
-      return `${base} bg-brand-500 text-white hover:bg-brand-600 cursor-pointer`;
-    }
-
-    if (day.isDisabled) {
-      return `${base} text-gray-300 cursor-not-allowed hover:bg-transparent`;
-    }
-
-    const todayRing = day.isToday ? ' ring-1 ring-brand-500' : '';
-    return `${base} cursor-pointer hover:bg-brand-100${todayRing}`;
+    if (!day.isCurrentMonth) return 'day-cell-outside';
+    if (day.isDisabled) return 'day-cell-disabled';
+    if (day.isSelected) return 'day-cell-selected';
+    if (day.isToday) return 'day-cell-today';
+    return 'day-cell-normal';
   }
 
   private toIso(date: Date): string {

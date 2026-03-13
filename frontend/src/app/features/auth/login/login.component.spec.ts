@@ -149,4 +149,9 @@ describe('LoginComponent', () => {
 
     expect(passwordInput.type).toBe('password');
   });
+
+  it('should stack vertically on narrow screens', () => {
+    const container = fixture.nativeElement.querySelector('div');
+    expect(container.classList.contains('flex-col')).toBe(true);
+  });
 });

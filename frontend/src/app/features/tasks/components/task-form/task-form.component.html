@@ -1,7 +1,7 @@
 <form
   [formGroup]="form"
   (ngSubmit)="onSubmit()"
-  class="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 space-y-4"
+  class="card-surface p-3 sm:p-4 space-y-4"
   data-testid="task-form"
 >
   <h3 class="text-sm sm:text-base font-semibold text-gray-900">
@@ -9,7 +9,7 @@
   </h3>
 
   <div>
-    <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1" for="title">Title</label>
+    <label class="form-label-sm mb-1" for="title">Title</label>
     <input
       id="title"
       type="text"
@@ -19,12 +19,12 @@
       placeholder="Task title"
     />
     @if (titleControl.invalid && titleControl.touched) {
-      <p class="mt-1 text-xs text-red-600" data-testid="title-error">Title is required</p>
+      <p class="input-error" data-testid="title-error">Title is required</p>
     }
   </div>
 
   <div>
-    <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1" for="description">Description</label>
+    <label class="form-label-sm mb-1" for="description">Description</label>
     <textarea
       id="description"
       formControlName="description"
@@ -34,12 +34,12 @@
       rows="3"
     ></textarea>
     @if (descriptionControl.invalid && descriptionControl.touched) {
-      <p class="mt-1 text-xs text-red-600" data-testid="description-error">Description is required</p>
+      <p class="input-error" data-testid="description-error">Description is required</p>
     }
   </div>
 
   <div>
-    <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1" for="status">Status</label>
+    <label class="form-label-sm mb-1" for="status">Status</label>
     <select
       id="status"
       formControlName="status"
@@ -53,16 +53,16 @@
   </div>
 
   <div>
-    <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1" for="dueDate">Due Date</label>
+    <label class="form-label-sm mb-1" for="dueDate">Due Date</label>
     <app-date-picker
       formControlName="dueDate"
       data-testid="due-date-input"
     ></app-date-picker>
     @if (dueDateControl.invalid && dueDateControl.touched) {
       @if (dueDateControl.errors?.['required']) {
-        <p class="mt-1 text-xs text-red-600" data-testid="due-date-error">Due date is required</p>
+        <p class="input-error" data-testid="due-date-error">Due date is required</p>
       } @else if (dueDateControl.errors?.['futureDate']) {
-        <p class="mt-1 text-xs text-red-600" data-testid="due-date-error">Due date must be in the future</p>
+        <p class="input-error" data-testid="due-date-error">Due date must be in the future</p>
       }
     }
   </div>

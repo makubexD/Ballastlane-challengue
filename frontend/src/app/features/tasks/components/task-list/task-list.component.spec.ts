@@ -81,4 +81,10 @@ describe('TaskListComponent', () => {
     );
     expect(banner).toBeNull();
   });
+
+  it('should have full-width new task button on mobile', () => {
+    const button = fixture.nativeElement.querySelector('[data-testid="new-task-button"]');
+    expect(button).toBeTruthy();
+    expect(button.classList.contains('w-full')).toBe(true);
+  });
 });

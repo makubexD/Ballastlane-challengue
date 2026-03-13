@@ -1,5 +1,5 @@
-    <div class="min-h-screen flex items-center justify-center bg-linear-to-br from-brand-50 to-gray-100 px-4">
-      <div class="mb-8 text-center">
+    <div class="min-h-screen flex flex-col items-center justify-center bg-linear-to-br from-brand-50 to-gray-100 px-4">
+      <div class="mb-4 sm:mb-8 text-center">
         <div class="inline-flex items-center justify-center w-12 h-12 bg-brand-600 rounded-xl mb-3">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -8,7 +8,7 @@
         <h2 class="text-2xl font-bold text-gray-900">Task Manager</h2>
       </div>
 
-      <div class="max-w-md w-full space-y-6 sm:space-y-8 p-6 sm:p-8 bg-white rounded-xl shadow-lg">
+      <div class="max-w-md w-full space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 bg-white rounded-xl shadow-lg">
         <h1 class="text-xl sm:text-2xl font-bold text-center text-gray-900">Sign in</h1>
 
         @if (serverError()) {
@@ -19,7 +19,7 @@
 
         <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" data-testid="login-form">
           <div>
-            <label class="block text-sm font-medium text-gray-700">Email</label>
+            <label class="form-label">Email</label>
             <input
               data-testid="email-input"
               type="email"
@@ -28,15 +28,15 @@
               placeholder="you@example.com"
             />
             @if (form.controls.email.touched && form.controls.email.errors?.['required']) {
-              <p data-testid="email-error" class="mt-1 text-sm text-red-600">Email is required</p>
+              <p data-testid="email-error" class="input-error">Email is required</p>
             }
             @if (form.controls.email.touched && form.controls.email.errors?.['email']) {
-              <p data-testid="email-format-error" class="mt-1 text-sm text-red-600">Invalid email format</p>
+              <p data-testid="email-format-error" class="input-error">Invalid email format</p>
             }
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700">Password</label>
+            <label class="form-label">Password</label>
             <div class="relative mt-1">
               <input
                 data-testid="password-input"
@@ -65,7 +65,7 @@
               </button>
             </div>
             @if (form.controls.password.touched && form.controls.password.errors?.['required']) {
-              <p data-testid="password-error" class="mt-1 text-sm text-red-600">Password is required</p>
+              <p data-testid="password-error" class="input-error">Password is required</p>
             }
           </div>
 

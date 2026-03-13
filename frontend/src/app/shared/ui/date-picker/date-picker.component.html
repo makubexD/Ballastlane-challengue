@@ -1,4 +1,4 @@
-<div class="relative">
+<div class="relative w-full">
   <!-- Trigger -->
   <div
     data-testid="date-picker-trigger"
@@ -28,14 +28,14 @@
   @if (isOpen()) {
     <div
       data-testid="calendar-panel"
-      class="absolute z-50 mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-200 p-3"
+      class="absolute z-50 mt-1 w-full max-w-72 left-0 bg-white rounded-lg shadow-lg border border-gray-200 p-3"
     >
       <!-- Header: prev / month-year label / next -->
       <div class="flex items-center justify-between mb-2">
         <button
           type="button"
           data-testid="prev-month-button"
-          class="h-7 w-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+          class="btn-icon-round"
           (click)="prevMonth()"
           aria-label="Previous month"
         >
@@ -54,7 +54,7 @@
         <button
           type="button"
           data-testid="next-month-button"
-          class="h-7 w-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+          class="btn-icon-round"
           (click)="nextMonth()"
           aria-label="Next month"
         >
