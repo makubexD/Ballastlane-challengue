@@ -45,12 +45,15 @@ export class TaskService {
   }
 
   create(req: CreateTaskRequest): void {
+    this.isLoading.set(true);
     this.http.post<Task>(this.apiUrl, req).subscribe({
       next: () => {
-        this.getAll(this.currentPage());
+        this.isLoading.set(false);
         this.toastService.success('Task created');
+        this.getAll(this.currentPage());
       },
       error: () => {
+        this.isLoading.set(false);
         this.createError.set('Failed to create task.');
         this.toastService.error('Something went wrong. Please try again.');
       }
@@ -79,9 +82,8 @@ export class TaskService {
     this.http.delete<void>(`${this.apiUrl}/${id}`).subscribe({
       next: () => {
         this.toastService.success('Task deleted');
-        if (this.tasks().length === 0 && page > 1) {
-          this.getAll(page - 1);
-        }
+        const nextPage = this.tasks().length === 0 && page > 1 ? page - 1 : page;
+        this.getAll(nextPage);
       },
       error: () => {
         this.tasks.set(previous);
