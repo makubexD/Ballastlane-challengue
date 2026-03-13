@@ -40,7 +40,7 @@ describe('TaskService', () => {
     expect(service.isLoading()).toBe(false);
   });
 
-  it('create() — should POST /api/tasks and append task to signal', () => {
+  it('create() — should POST /api/tasks and reload current page', () => {
     service.tasks.set([FIXTURE_TASKS[0]]);
 
     const createReq = {
@@ -52,15 +52,45 @@ describe('TaskService', () => {
 
     service.create(createReq);
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/tasks`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(createReq);
+    const post = httpMock.expectOne(`${environment.apiUrl}/api/tasks`);
+    expect(post.request.method).toBe('POST');
+    expect(post.request.body).toEqual(createReq);
 
     const newTask = { ...FIXTURE_TASKS[0], id: '99', title: 'New task' };
-    req.flush(newTask);
+    post.flush(newTask);
 
-    expect(service.tasks()).toHaveLength(2);
-    expect(service.tasks()[1]).toEqual(newTask);
+    // create() calls getAll(currentPage) → expect follow-up GET for fresh pagination
+    const get = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=20`);
+    const updatedItems = [newTask, FIXTURE_TASKS[0]];
+    get.flush({ items: updatedItems, totalCount: 2, page: 1, pageSize: 20, totalPages: 1, hasNextPage: false, hasPreviousPage: false });
+
+    expect(service.tasks()).toEqual(updatedItems);
+    expect(service.totalCount()).toBe(2);
+  });
+
+  it('delete() — should navigate to previous page when the current page becomes empty', () => {
+    service.currentPage.set(2);
+    service.tasks.set([FIXTURE_TASKS[0]]);
+
+    service.delete(FIXTURE_TASKS[0].id);
+    expect(service.tasks()).toHaveLength(0); // optimistic removal
+
+    httpMock.expectOne(`${environment.apiUrl}/api/tasks/${FIXTURE_TASKS[0].id}`).flush(null);
+
+    // tasks is empty on page > 1 → should call getAll(1)
+    const get = httpMock.expectOne(`${environment.apiUrl}/api/tasks?page=1&pageSize=20`);
+    get.flush({
+      items: FIXTURE_TASKS,
+      totalCount: FIXTURE_TASKS.length,
+      page: 1,
+      pageSize: 20,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false
+    });
+
+    expect(service.currentPage()).toBe(1);
+    expect(service.tasks()).toEqual(FIXTURE_TASKS);
   });
 
   it('delete(id) — should remove task from signal immediately and revert on API error', () => {
