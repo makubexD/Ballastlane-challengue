@@ -184,4 +184,62 @@ describe('RegisterComponent', () => {
     const container = fixture.nativeElement.querySelector('div');
     expect(container.classList.contains('flex-col')).toBe(true);
   });
+
+  it('should disable submit button after first invalid submission attempt', () => {
+    component.form.controls.email.setValue('');
+    component.form.controls.password.setValue('');
+
+    component.onSubmit();
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('[data-testid="submit-button"]');
+
+    expect(button.disabled).toBe(true);
+  });
+
+  it('should not disable submit button before first submission attempt', () => {
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('[data-testid="submit-button"]');
+
+    expect(button.disabled).toBe(false);
+  });
+
+  it('should show password strength bar when password has value', async () => {
+    component.form.controls.password.setValue('Test');
+    component.form.controls.password.markAsTouched();
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const strengthBar = fixture.nativeElement.querySelector('[data-testid="password-strength"]');
+
+    expect(strengthBar).toBeTruthy();
+  });
+
+  it('should show strength label Weak for short password', async () => {
+    component.form.controls.password.setValue('Abcdefg');
+    component.form.controls.password.markAsTouched();
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const label = fixture.nativeElement.querySelector('[data-testid="password-strength-label"]');
+
+    expect(label).toBeTruthy();
+    expect(label.textContent).toContain('Weak');
+  });
+
+  it('should show strength label Strong for long strong password', async () => {
+    component.form.controls.password.setValue('SecurePass1Long');
+    component.form.controls.password.markAsTouched();
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const label = fixture.nativeElement.querySelector('[data-testid="password-strength-label"]');
+
+    expect(label).toBeTruthy();
+    expect(label.textContent).toContain('Strong');
+  });
 });

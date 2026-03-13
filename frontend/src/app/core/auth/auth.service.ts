@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, catchError, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { LoginRequest, RegisterRequest, UserProfile } from './auth.model';
+import { ToastService } from '../../shared/ui/toast/toast.service';
 
 export type { LoginRequest, RegisterRequest, UserProfile };
 
@@ -11,6 +12,7 @@ export type { LoginRequest, RegisterRequest, UserProfile };
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly toastService = inject(ToastService);
 
   private readonly _isAuthenticated = signal<boolean>(false);
   readonly isAuthenticated = this._isAuthenticated.asReadonly();
@@ -47,10 +49,12 @@ export class AuthService {
       .subscribe({
         complete: () => {
           this._isAuthenticated.set(false);
+          this.toastService.info('Signed out successfully');
           this.router.navigate(['/login']);
         },
         error: () => {
           this._isAuthenticated.set(false);
+          this.toastService.info('Signed out successfully');
           this.router.navigate(['/login']);
         }
       });

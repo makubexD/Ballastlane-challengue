@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -24,8 +24,29 @@ export class RegisterComponent {
   readonly isSubmitting = signal(false);
   readonly serverError = signal<string | null>(null);
   readonly showPassword = signal(false);
+  readonly submitted = signal(false);
+
+  readonly passwordStrength = computed(() => {
+    const pw = this.form.controls.password.value ?? '';
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (pw.length >= 12) score++;
+    return score;
+  });
+
+  readonly strengthLabel = computed(() =>
+    (['', 'Weak', 'Fair', 'Good', 'Strong'] as const)[this.passwordStrength()]
+  );
+
+  readonly strengthColor = computed(() =>
+    (['', 'bg-red-400', 'bg-yellow-400', 'bg-brand-400', 'bg-green-500'] as const)[this.passwordStrength()]
+  );
 
   onSubmit(): void {
+    this.submitted.set(true);
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;

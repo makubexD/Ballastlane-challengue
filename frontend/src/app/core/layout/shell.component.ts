@@ -10,8 +10,10 @@ import { AuthService } from '../auth/auth.service';
   imports: [RouterOutlet],
   template: `
     <nav class="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
-        <span class="text-lg font-semibold text-gray-900 min-w-0 truncate">Task Manager</span>
+      <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 flex items-center justify-between h-14">
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+          <span class="text-lg font-semibold text-gray-900 min-w-0 truncate">Task Manager</span>
+        </div>
         <div class="flex items-center gap-4">
           <span data-testid="user-email" class="hidden sm:block text-sm text-gray-600">{{ userEmail() }}</span>
           <button

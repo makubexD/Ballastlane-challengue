@@ -112,4 +112,19 @@
            rounded-full transition-colors text-gray-300 cursor-not-allowed opacity-50;
   }
 
+  /* Toast slide-in animation */
+  .toast-enter {
+    animation: toast-in 200ms ease-out forwards;
+  }
+
+  /* Info alert */
+  .alert-info {
+    @apply bg-brand-50 border border-brand-100 text-brand-700 px-4 py-3 rounded-lg;
+  }
+
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(1rem); }
+  to   { opacity: 1; transform: translateX(0); }
 }
