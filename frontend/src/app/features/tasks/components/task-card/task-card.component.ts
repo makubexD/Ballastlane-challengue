@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Task } from '../../models/task.model';
 import { BadgeComponent } from '../../../../shared/ui/badge.component';
@@ -18,26 +18,43 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
           <p class="mt-1 text-xs text-gray-500" data-testid="task-due-date">
             Due: {{ task().dueDate | date:'MMM d, yyyy' }}
           </p>
+          @if (isOverdue()) {
+            <span class="inline-flex items-center mt-1 text-xs font-medium text-red-600" data-testid="overdue-badge">
+              &#9888; Overdue
+            </span>
+          }
         </div>
         <app-badge [status]="task().status" />
       </div>
       <div class="mt-2 sm:mt-3 flex justify-end gap-2">
-        <button
-          type="button"
-          class="px-3 py-1 text-xs font-medium text-brand-700 bg-brand-50 rounded-md hover:bg-brand-100 transition-colors"
-          data-testid="edit-task-button"
-          (click)="onEdit()"
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          class="px-3 py-1 text-xs font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-          data-testid="delete-task-button"
-          (click)="onDelete()"
-        >
-          Delete
-        </button>
+        @if (showDeleteConfirm()) {
+          <span class="text-xs text-gray-600 self-center mr-1">Delete?</span>
+          <button
+            type="button"
+            class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+            data-testid="confirm-delete-button"
+            (click)="confirmDelete()"
+          >Confirm</button>
+          <button
+            type="button"
+            class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            data-testid="cancel-delete-button"
+            (click)="cancelDelete()"
+          >Cancel</button>
+        } @else {
+          <button
+            type="button"
+            class="px-3 py-1 text-xs font-medium text-brand-700 bg-brand-50 rounded-md hover:bg-brand-100 transition-colors"
+            data-testid="edit-button"
+            (click)="onEdit()"
+          >Edit</button>
+          <button
+            type="button"
+            class="px-3 py-1 text-xs font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+            data-testid="delete-button"
+            (click)="onDelete()"
+          >Delete</button>
+        }
       </div>
     </div>
   `
@@ -47,13 +64,28 @@ export class TaskCardComponent {
   editTask = output<Task>();
   deleteTask = output<string>();
 
+  readonly showDeleteConfirm = signal(false);
+
+  readonly isOverdue = computed(() => {
+    const t = this.task();
+    if (!t.dueDate || t.status === 'Done') return false;
+    return new Date(t.dueDate) < new Date();
+  });
+
   onEdit(): void {
     this.editTask.emit(this.task());
   }
 
   onDelete(): void {
-    if (window.confirm('Delete this task?')) {
-      this.deleteTask.emit(this.task().id);
-    }
+    this.showDeleteConfirm.set(true);
+  }
+
+  confirmDelete(): void {
+    this.deleteTask.emit(this.task().id);
+    this.showDeleteConfirm.set(false);
+  }
+
+  cancelDelete(): void {
+    this.showDeleteConfirm.set(false);
   }
 }

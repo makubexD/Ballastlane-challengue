@@ -11,6 +11,15 @@ import { passwordStrengthValidator } from '../../../shared/validators/password-s
   imports: [ReactiveFormsModule, RouterLink],
   template: `
     <div class="min-h-screen flex items-center justify-center bg-linear-to-br from-brand-50 to-gray-100 px-4">
+      <div class="mb-8 text-center">
+        <div class="inline-flex items-center justify-center w-12 h-12 bg-brand-600 rounded-xl mb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900">Task Manager</h2>
+      </div>
+
       <div class="max-w-md w-full space-y-6 sm:space-y-8 p-6 sm:p-8 bg-white rounded-xl shadow-lg">
         <h1 class="text-xl sm:text-2xl font-bold text-center text-gray-900">Create account</h1>
 
@@ -32,8 +41,33 @@ import { passwordStrengthValidator } from '../../../shared/validators/password-s
 
           <div>
             <label class="block text-sm font-medium text-gray-700">Password</label>
-            <input data-testid="password-input" type="password" formControlName="password"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
+            <div class="relative mt-1">
+              <input
+                data-testid="password-input"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
+                class="block w-full rounded-md border-gray-300 shadow-sm pr-10 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                (click)="showPassword.set(!showPassword())"
+                data-testid="toggle-password-button"
+                [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              >
+                @if (showPassword()) {
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"/>
+                    <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/>
+                  </svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                  </svg>
+                }
+              </button>
+            </div>
             @if (form.controls.password.touched && form.controls.password.errors?.['minLength']) {
               <p data-testid="password-length-error" class="mt-1 text-sm text-red-600">Password must be at least 8 characters</p>
             }
@@ -71,6 +105,7 @@ export class RegisterComponent {
 
   readonly isSubmitting = signal(false);
   readonly serverError = signal<string | null>(null);
+  readonly showPassword = signal(false);
 
   onSubmit(): void {
     if (this.form.invalid) {

@@ -17,12 +17,13 @@ describe('TaskListComponent', () => {
     }).compileComponents();
 
     taskService = TestBed.inject(TaskService);
-    // Prevent actual HTTP call in ngOnInit
     vi.spyOn(taskService, 'getAll').mockImplementation(() => {});
 
     fixture = TestBed.createComponent(TaskListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+
+    vi.clearAllMocks();
   });
 
   it('should render task cards for each task in the signal', () => {
@@ -46,13 +47,38 @@ describe('TaskListComponent', () => {
     expect(emptyState).toBeTruthy();
   });
 
-  it('should show SpinnerComponent while isLoading is true', () => {
+  it('should show task skeleton cards while isLoading is true', () => {
     taskService.isLoading.set(true);
     fixture.detectChanges();
 
-    const spinner = (fixture.nativeElement as HTMLElement).querySelector(
-      '[data-testid="spinner"]'
+    const skeletonCards = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="task-skeleton-card"]'
     );
-    expect(spinner).toBeTruthy();
+    expect(skeletonCards.length).toBeGreaterThan(0);
+  });
+
+  it('should show error banner when taskService has an error', () => {
+    taskService.error.set('Failed to load tasks.');
+    fixture.detectChanges();
+
+    const banner = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="error-banner"]'
+    );
+    expect(banner).toBeTruthy();
+  });
+
+  it('should hide error banner after dismissal', () => {
+    taskService.error.set('Failed to load tasks.');
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="dismiss-error-button"]')
+      ?.click();
+    fixture.detectChanges();
+
+    const banner = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="error-banner"]'
+    );
+    expect(banner).toBeNull();
   });
 });

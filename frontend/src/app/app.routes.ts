@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { ShellComponent } from './core/layout/shell.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'tasks', pathMatch: 'full' },
@@ -14,10 +15,16 @@ export const routes: Routes = [
       import('./features/auth/register/register.component').then(m => m.RegisterComponent)
   },
   {
-    path: 'tasks',
+    path: '',
+    component: ShellComponent,
     canActivate: [authGuard],
-    loadChildren: () =>
-      import('./features/tasks/tasks.routes').then(m => m.TASKS_ROUTES)
+    children: [
+      {
+        path: 'tasks',
+        loadChildren: () =>
+          import('./features/tasks/tasks.routes').then(m => m.TASKS_ROUTES)
+      }
+    ]
   },
   { path: '**', redirectTo: 'tasks' }
 ];
