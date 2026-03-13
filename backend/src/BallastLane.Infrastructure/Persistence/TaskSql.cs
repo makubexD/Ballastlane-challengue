@@ -61,12 +61,18 @@ internal static class TaskSql
         var status = Enum.Parse<TaskItemStatus>(reader.GetString(reader.GetOrdinal(ColStatus)));
         var createdAt = reader.GetDateTime(reader.GetOrdinal(ColCreatedAt)).ToUniversalTime();
         var updatedAt = reader.GetDateTime(reader.GetOrdinal(ColUpdatedAt)).ToUniversalTime();
+        var descOrdinal = reader.GetOrdinal(ColDescription);
+        var dueDateOrdinal = reader.GetOrdinal(ColDueDate);
         var task = TaskItem.Create(
             reader.GetGuid(reader.GetOrdinal(ColId)),
             reader.GetString(reader.GetOrdinal(ColTitle)),
-            reader.GetString(reader.GetOrdinal(ColDescription)),
+            reader.IsDBNull(descOrdinal)
+                ? throw new InvalidOperationException($"tasks.description is NULL for id={reader.GetGuid(reader.GetOrdinal(ColId))}")
+                : reader.GetString(descOrdinal),
             status,
-            reader.GetDateTime(reader.GetOrdinal(ColDueDate)).ToUniversalTime(),
+            reader.IsDBNull(dueDateOrdinal)
+                ? throw new InvalidOperationException($"tasks.due_date is NULL for id={reader.GetGuid(reader.GetOrdinal(ColId))}")
+                : reader.GetDateTime(dueDateOrdinal).ToUniversalTime(),
             reader.GetGuid(reader.GetOrdinal(ColUserId)),
             createdAt,
             updatedAt);
