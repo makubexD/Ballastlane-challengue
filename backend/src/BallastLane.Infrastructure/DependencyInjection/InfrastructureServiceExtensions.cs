@@ -60,6 +60,8 @@ public static class InfrastructureServiceExtensions
         registrar.Register(services);
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
+        services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
+        services.AddSingleton<IJwtProvider, JwtProvider>();
 
         services.AddSingleton<TaskValidator>();
         services.AddSingleton<AuthValidator>();
