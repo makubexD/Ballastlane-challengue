@@ -12,7 +12,7 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150" data-testid="task-card">
       <div class="flex items-start justify-between gap-2">
         <div class="flex-1 min-w-0">
-          <h3 class="text-sm font-medium text-gray-900 truncate" data-testid="task-title">
+          <h3 class="text-xs sm:text-sm font-medium text-gray-900 truncate" data-testid="task-title">
             {{ task().title }}
           </h3>
           <p class="mt-1 text-xs text-gray-500" data-testid="task-due-date">
