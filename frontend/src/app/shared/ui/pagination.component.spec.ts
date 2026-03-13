@@ -66,4 +66,10 @@ describe('PaginationComponent', () => {
     const indicator = fixture.nativeElement.querySelector('[data-testid="page-indicator"]');
     expect(indicator?.textContent?.trim()).toBe('Page 2 of 5');
   });
+
+  it('should wrap pagination items on narrow screens', () => {
+    const container = fixture.nativeElement.querySelector('[data-testid="pagination-container"]')
+      ?? fixture.nativeElement.querySelector('div');
+    expect(container.classList.contains('flex-wrap')).toBe(true);
+  });
 });

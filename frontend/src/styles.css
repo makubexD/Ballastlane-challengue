@@ -56,4 +56,60 @@
     @apply bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg;
   }
 
+  /* Form labels */
+  .form-label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+  .form-label-sm {
+    @apply block text-xs sm:text-sm font-medium text-gray-700;
+  }
+
+  /* Validation error messages */
+  .input-error {
+    @apply mt-1 text-sm text-red-600;
+  }
+
+  /* Card surface (no padding — each component provides its own) */
+  .card-surface {
+    @apply bg-white rounded-lg border border-gray-200;
+  }
+
+  /* Pagination nav buttons */
+  .btn-nav {
+    @apply px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md
+           disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors;
+  }
+
+  /* Calendar icon nav buttons */
+  .btn-icon-round {
+    @apply h-7 w-7 flex items-center justify-center rounded-full
+           hover:bg-gray-100 transition-colors text-gray-600;
+  }
+
+  /* Date picker day cells — all utilities inlined (no @apply composition of component classes) */
+  .day-cell {
+    @apply h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center text-xs
+           rounded-full transition-colors;
+  }
+  .day-cell-normal {
+    @apply h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center text-xs
+           rounded-full transition-colors cursor-pointer hover:bg-brand-100;
+  }
+  .day-cell-today {
+    @apply h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center text-xs
+           rounded-full transition-colors cursor-pointer hover:bg-brand-100 ring-1 ring-brand-500;
+  }
+  .day-cell-selected {
+    @apply h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center text-xs
+           rounded-full transition-colors cursor-pointer bg-brand-500 text-white hover:bg-brand-600;
+  }
+  .day-cell-disabled {
+    @apply h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center text-xs
+           rounded-full transition-colors text-gray-300 cursor-not-allowed;
+  }
+  .day-cell-outside {
+    @apply h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center text-xs
+           rounded-full transition-colors text-gray-300 cursor-not-allowed opacity-50;
+  }
+
 }

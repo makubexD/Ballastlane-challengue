@@ -66,4 +66,11 @@ describe('ShellComponent', () => {
     const emailEl = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="user-email"]');
     expect(emailEl?.textContent?.trim()).toBe(MOCK_USER.email);
   });
+
+  it('should have min-w-0 on title to prevent overflow', () => {
+    const spans = fixture.nativeElement.querySelectorAll('span');
+    const titleSpan = Array.from(spans).find((s: any) => s.textContent.includes('Task Manager') || s.classList.contains('min-w-0'));
+    expect(titleSpan).toBeTruthy();
+    expect((titleSpan as HTMLElement).classList.contains('min-w-0')).toBe(true);
+  });
 });

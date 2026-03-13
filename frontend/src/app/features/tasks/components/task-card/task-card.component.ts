@@ -9,7 +9,7 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DatePipe, BadgeComponent],
   template: `
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150" data-testid="task-card">
+    <div class="card-surface shadow-sm p-3 sm:p-4 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150" data-testid="task-card">
       <div class="flex items-start justify-between gap-2">
         <div class="flex-1 min-w-0">
           <h3 class="text-xs sm:text-sm font-medium text-gray-900 truncate" data-testid="task-title">
@@ -26,7 +26,7 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
         </div>
         <app-badge [status]="task().status" />
       </div>
-      <div class="mt-2 sm:mt-3 flex justify-end gap-2">
+      <div class="mt-2 sm:mt-3 flex flex-wrap justify-end gap-2">
         @if (showDeleteConfirm()) {
           <span class="text-xs text-gray-600 self-center mr-1">Delete?</span>
           <button
