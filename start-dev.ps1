@@ -40,6 +40,7 @@ $Config = [ordered]@{
 
     # ── Infrastructure ────────────────────────────────────────────────────────
     DbContainer      = 'ballastlane_db'
+    PgAdminContainer = 'ballastlane_pgadmin'
 
     # ── Version minimums ──────────────────────────────────────────────────────
     DotnetMin        = 8
@@ -49,7 +50,6 @@ $Config = [ordered]@{
     # ── Timeouts (seconds) ────────────────────────────────────────────────────
     DbHealthTimeout  = 30
     ApiStartTimeout  = 60
-    FrontendTimeout  = 60
     TunnelTimeout    = 8
 }
 
@@ -174,7 +174,7 @@ function Resolve-Port {
         $listeners.OwningProcess | Sort-Object -Unique |
         ForEach-Object { (Get-Process -Id $_ -ErrorAction SilentlyContinue).ProcessName }
     )
-    if ($names | Where-Object { $_ -match 'podman|docker|ssh|vpnkit' }) { return $Port }
+    if ($names | Where-Object { $_ -match 'podman|docker|ssh|vpnkit|wslrelay' }) { return $Port }
     $alt = $Port + 2
     while ($alt -lt 5500 -and (Get-NetTCPConnection -LocalPort $alt -State Listen -ErrorAction SilentlyContinue)) { $alt++ }
     Write-Warn "Port $Port in use by '$($names -join ', ')' — remapping to $alt."
@@ -215,6 +215,7 @@ function Stop-PodmanTunnel {
         Stop-Process -Id $script:PodmanTunnel.Id -Force -ErrorAction SilentlyContinue
         $script:PodmanTunnel = $null
     }
+    Remove-Item Env:DOCKER_HOST -ErrorAction SilentlyContinue
 }
 
 # Tear down containers, stop tunnel, restore location, and exit. Requires $ComposeEngine / $prevLocation.
@@ -227,6 +228,22 @@ function Stop-Stack {
     Stop-PodmanTunnel
     Set-Location $prevLocation
     exit 1
+}
+
+function Stop-OrphanedService {
+    param([int]$Port, [string]$Label)
+    $listeners = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+    if (-not $listeners) { return }
+    $procs = @(
+        $listeners.OwningProcess | Sort-Object -Unique |
+        ForEach-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue } |
+        Where-Object { $_ -and $_.ProcessName -notmatch 'podman|docker|ssh|vpnkit|wslrelay' }
+    )
+    foreach ($proc in $procs) {
+        Write-Warn "Stopping orphaned $Label on port $Port (PID $($proc.Id) / $($proc.ProcessName))"
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    }
+    if ($procs.Count -gt 0) { Start-Sleep -Milliseconds 500 }
 }
 
 # Configure Podman for Docker-compatible API access (Windows only)
@@ -252,25 +269,113 @@ compose_providers = ['$pdComposeExe']
     $pdBin = Split-Path -Parent $pdComposeExe
     if ((Test-Path $pdBin) -and ($env:PATH -notmatch [regex]::Escape($pdBin))) { $env:PATH = "$pdBin;$env:PATH" }
 
-    # Tunnel Podman socket via SSH to a local TCP port
+    # Kill any stale SSH tunnel left over from a previous run (port still occupied)
+    $staleListeners = Get-NetTCPConnection -LocalPort $Config.PodmanTunnelPort -State Listen -ErrorAction SilentlyContinue
+    if ($staleListeners) {
+        $staleListeners.OwningProcess | Sort-Object -Unique | ForEach-Object {
+            $p = Get-Process -Id $_ -ErrorAction SilentlyContinue
+            if ($p -and $p.ProcessName -match 'ssh') {
+                Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            }
+        }
+        Start-Sleep -Milliseconds 400
+    }
+
+    # Read machine SSH connection info
     $machineConn = (& podman machine inspect 2>$null | ConvertFrom-Json)[0]
     $sshKey  = $machineConn.SSHConfig.IdentityPath
     $sshPort = [int]$machineConn.SSHConfig.Port
-    $script:PodmanTunnel = Start-Process 'ssh' -ArgumentList @(
+
+    # Verify SSH port is reachable — WSL2 port forwarding breaks after Windows
+    # hibernate/resume or unclean shutdown without stopping the Podman machine.
+    $sshReachable = $false
+    $sshCheckDeadline = (Get-Date).AddSeconds(2)
+    while ((Get-Date) -lt $sshCheckDeadline) {
+        try {
+            $tc = New-Object System.Net.Sockets.TcpClient
+            $tc.Connect('127.0.0.1', $sshPort)
+            $tc.Close(); $sshReachable = $true; break
+        } catch { Start-Sleep -Milliseconds 300 }
+    }
+    if (-not $sshReachable) {
+        Write-Warn "Podman machine SSH not reachable on port $sshPort — resetting WSL2 network stack..."
+        Write-Info 'Running: wsl --shutdown (resets WSL2 port forwarding)...'
+        wsl --shutdown 2>&1 | Out-Null
+        Start-Sleep -Seconds 3
+        Write-Info 'Running: podman machine start (may take up to 60 seconds)...'
+        & podman machine start 2>&1 | Out-Null
+        # Verify via machine state — not exit code (Docker pipe conflict causes false non-zero)
+        $machineConn = (& podman machine inspect 2>$null | ConvertFrom-Json)[0]
+        if ($machineConn.State -ne 'running') {
+            Write-Err "Podman machine failed to restart (state: $($machineConn.State)). Run: wsl --shutdown && podman machine start"
+            exit 1
+        }
+        $sshKey  = $machineConn.SSHConfig.IdentityPath
+        $sshPort = [int]$machineConn.SSHConfig.Port
+        # Re-probe SSH with generous timeout — machine cold-started from zero
+        $sshReachable = $false
+        $sshReprobeDeadline = (Get-Date).AddSeconds(30)
+        while ((Get-Date) -lt $sshReprobeDeadline) {
+            try {
+                $tc = New-Object System.Net.Sockets.TcpClient
+                $tc.Connect('127.0.0.1', $sshPort)
+                $tc.Close(); $sshReachable = $true; break
+            } catch { Start-Sleep -Milliseconds 500 }
+        }
+        if (-not $sshReachable) {
+            Write-Err "Podman machine started but SSH still not reachable on port $sshPort after WSL2 reset. Run: podman machine ls"
+            exit 1
+        }
+        Write-Ok 'WSL2 reset complete — Podman machine ready'
+    }
+
+    # Find a free local port for the Podman SSH tunnel.
+    # The static default (52375) falls in a Windows-excluded range reserved by Hyper-V/WSL2.
+    # Scanning 40000-49000 (below the 49152 ephemeral start) and attempting a real TcpListener
+    # bind is the only reliable way to skip both the exclusion list and any occupied ports.
+    $tunnelPort = $null
+    for ($p = 40000; $p -le 49000; $p++) {
+        try {
+            $l = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $p)
+            $l.Start(); $l.Stop()
+            $tunnelPort = $p; break
+        } catch { }
+    }
+    if ($null -eq $tunnelPort) {
+        Write-Err 'No free port found in 40000-49000 for the Podman socket tunnel.'
+        exit 1
+    }
+    $Config['PodmanTunnelPort'] = $tunnelPort
+
+    # Tunnel Podman socket via SSH to a local TCP port.
+    # Always use the Windows System32 OpenSSH client — it handles Windows-style key paths
+    # correctly regardless of which terminal launched the script (Git Bash, CMD, PS5, PS7).
+    # Using bare 'ssh' would resolve to Git-for-Windows SSH when run from Git Bash, which
+    # expects POSIX paths and fails with the Windows-style key path from podman machine inspect.
+    $sshExe = Join-Path $env:SystemRoot 'System32\OpenSSH\ssh.exe'
+    if (-not (Test-Path $sshExe)) {
+        Write-Err 'OpenSSH Client not found. Install: Settings -> Apps -> Optional Features -> OpenSSH Client.'
+        exit 1
+    }
+
+    $sshErrFile = [System.IO.Path]::GetTempFileName()
+    $script:PodmanTunnel = Start-Process $sshExe -ArgumentList @(
         '-N', '-L', "$($Config.PodmanTunnelPort):/run/podman/podman.sock",
         '-i', $sshKey, '-p', $sshPort,
         '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
         'root@127.0.0.1'
-    ) -PassThru -WindowStyle Hidden -ErrorAction SilentlyContinue
+    ) -PassThru -WindowStyle Hidden -RedirectStandardError $sshErrFile -ErrorAction SilentlyContinue
 
     if (-not $script:PodmanTunnel) {
-        Write-Err 'Could not start SSH tunnel to Podman. Install OpenSSH Client via Settings → Apps → Optional Features.'
+        Remove-Item $sshErrFile -ErrorAction SilentlyContinue
+        Write-Err 'Could not start SSH tunnel to Podman. Install OpenSSH Client via Settings -> Apps -> Optional Features.'
         exit 1
     }
 
     $ready = $false
     $deadline = (Get-Date).AddSeconds($Config.TunnelTimeout)
     while ((Get-Date) -lt $deadline) {
+        if ($script:PodmanTunnel.HasExited) { break }   # SSH exited immediately — no point waiting
         try {
             $tc = New-Object System.Net.Sockets.TcpClient
             $tc.Connect('127.0.0.1', $Config.PodmanTunnelPort)
@@ -279,12 +384,25 @@ compose_providers = ['$pdComposeExe']
     }
 
     if ($ready) {
+        Remove-Item $sshErrFile -ErrorAction SilentlyContinue
         $env:DOCKER_HOST = "tcp://localhost:$($Config.PodmanTunnelPort)"
         Write-Info "Podman socket tunneled → tcp://localhost:$($Config.PodmanTunnelPort)"
     } else {
-        Stop-Process -Id $script:PodmanTunnel.Id -Force -ErrorAction SilentlyContinue
+        $sshErr = if (Test-Path $sshErrFile) {
+            (Get-Content $sshErrFile -Raw -ErrorAction SilentlyContinue) -replace '\r?\n', ' '
+        } else { '' }
+        Remove-Item $sshErrFile -ErrorAction SilentlyContinue
+        $sshExited = $script:PodmanTunnel -and $script:PodmanTunnel.HasExited
+        if ($script:PodmanTunnel -and -not $sshExited) {
+            Stop-Process -Id $script:PodmanTunnel.Id -Force -ErrorAction SilentlyContinue
+        }
         $script:PodmanTunnel = $null
-        Write-Err 'SSH tunnel to Podman socket timed out. Check: podman machine ls'
+        if ($sshErr) { Write-Host "  SSH output: $sshErr" -ForegroundColor DarkRed }
+        if ($sshExited) {
+            Write-Err "SSH tunnel process exited immediately (check key path: $sshKey)"
+        } else {
+            Write-Err "SSH tunnel to Podman socket timed out. SSH port: $sshPort. Run: podman machine ls"
+        }
         exit 1
     }
 
@@ -298,6 +416,9 @@ compose_providers = ['$pdComposeExe']
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
+
+# Clear any stale Podman tunnel env from a previous run in this shell
+Remove-Item Env:DOCKER_HOST -ErrorAction SilentlyContinue
 
 Write-Banner
 
@@ -339,20 +460,21 @@ if (-not $useSqlite) {
             Write-Err 'No Podman machine found. Run: podman machine init && podman machine start'
             exit 1
         }
-        $podmanUp = Invoke-Tool 'podman' @('ps')
-        if ($podmanUp.ExitCode -eq 0) {
+        $machineInfo = (& podman machine inspect 2>$null | ConvertFrom-Json)
+        if ($machineInfo -and $machineInfo[0].State -eq 'running') {
             Write-Ok 'Podman machine running'
-        }
-        else {
+        } else {
             Write-Warn 'Podman machine exists but is not running. Starting it...'
             Write-Info 'Running: podman machine start (may take up to 60 seconds)...'
-            & podman machine start
+            $startOutput = (& podman machine start 2>&1) -join ' '
             if ($LASTEXITCODE -ne 0) {
-                Write-Err 'Failed to start Podman machine. If WSL2 is missing: wsl --install (then reboot). To reset: podman machine rm && podman machine init && podman machine start'
+                Write-Err "Failed to start Podman machine: $startOutput. If WSL2 is missing: wsl --install (then reboot). To reset: podman machine rm && podman machine init && podman machine start"
                 exit 1
             }
             Write-Ok 'Podman machine started'
         }
+        # Set up SSH tunnel now — required for all subsequent podman/compose calls
+        Initialize-Podman
     }
 
     $enginePs = Invoke-Tool $ContainerEngine @('ps')
@@ -361,8 +483,6 @@ if (-not $useSqlite) {
         exit 1
     }
     Write-Ok "$ContainerEngine daemon running"
-
-    if ($ContainerEngine -eq 'podman') { Initialize-Podman }
 
     $ComposeEngine = Get-ComposeForEngine $ContainerEngine
     if ($null -eq $ComposeEngine) {
@@ -471,8 +591,17 @@ Set-Location $Root
 if (-not $useSqlite) {
     $hostDbPort   = Resolve-Port ([int]$env['DB_PORT'])
 
-    Write-Info "Running: $composeLabel up -d"
-    $dcUp = Invoke-Tool $ComposeEngine.Cmd ($ComposeEngine.Args + @('up', '-d'))
+    # Force-remove stale containers by name before starting fresh.
+    # compose down only removes containers it created (matched by project label);
+    # containers created under a different project/path are invisible to it.
+    # try/catch required: $ErrorActionPreference = 'Stop' turns the NativeCommandError
+    # from "No such container" into a terminating error — catch swallows it.
+    try {
+        $null = & $ContainerEngine 'rm' '-f' $Config.DbContainer $Config.PgAdminContainer 2>&1
+    } catch { <# containers may not exist on first run or after compose down — expected #> }
+
+    Write-Info "Running: $composeLabel up -d postgres pgadmin"
+    $dcUp = Invoke-Tool $ComposeEngine.Cmd ($ComposeEngine.Args + @('up', '-d', 'postgres', 'pgadmin'))
     if ($dcUp.ExitCode -ne 0) {
         Stop-Stack "Compose failed: $($dcUp.Output)"
     }
@@ -499,16 +628,37 @@ if (-not $useSqlite) {
     }
     Write-Ok "PostgreSQL healthy (port $hostDbPort)"
 
-    Write-Info 'Setting DB password from .env...'
-    $setPass = Invoke-Tool $ContainerEngine @(
-        'exec', $Config.DbContainer, 'psql',
-        '-U', $env['DB_USER'],
-        '-c', "ALTER USER $($env['DB_USER']) WITH PASSWORD '$($env['DB_PASSWORD'])'"
-    )
-    if ($setPass.ExitCode -ne 0) {
-        Stop-Stack "Failed to set DB password: $($setPass.Output). Check: $ContainerEngine logs $($Config.DbContainer)"
+    Write-Info 'Ensuring DB user exists and password matches .env...'
+    $user = $env['DB_USER']
+    $pass = $env['DB_PASSWORD']
+    $db   = $env['DB_NAME']
+    # 1 — Ensure role exists + set password (DO block; no CREATE DATABASE here)
+    $ensureRoleSql = "DO `$`$ BEGIN " +
+        "IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$user') THEN " +
+        "CREATE ROLE $user WITH LOGIN; " +
+        "END IF; " +
+        "ALTER ROLE $user WITH PASSWORD '$pass'; " +
+        "END `$`$;"
+    $r1 = Invoke-Tool $ContainerEngine @('exec', $Config.DbContainer, 'psql', '-U', $user, '-c', $ensureRoleSql)
+    if ($r1.ExitCode -ne 0) {
+        Stop-Stack "Failed to configure DB user: $($r1.Output). Check: $ContainerEngine logs $($Config.DbContainer)"
     }
-    Write-Ok "DB password set (user=$($env['DB_USER']))"
+
+    # 2 — Ensure database exists (CREATE DATABASE cannot run inside a DO block)
+    $dbExists = Invoke-Tool $ContainerEngine @('exec', $Config.DbContainer, 'psql', '-U', $user, '-tAc', "SELECT 1 FROM pg_database WHERE datname = '$db'")
+    if ($dbExists.Output.Trim() -ne '1') {
+        $r2 = Invoke-Tool $ContainerEngine @('exec', $Config.DbContainer, 'psql', '-U', $user, '-c', "CREATE DATABASE $db OWNER $user")
+        if ($r2.ExitCode -ne 0) {
+            Stop-Stack "Failed to create database: $($r2.Output). Check: $ContainerEngine logs $($Config.DbContainer)"
+        }
+    }
+
+    # 3 — Always ensure privileges (idempotent)
+    $r3 = Invoke-Tool $ContainerEngine @('exec', $Config.DbContainer, 'psql', '-U', $user, '-c', "GRANT ALL PRIVILEGES ON DATABASE $db TO $user")
+    if ($r3.ExitCode -ne 0) {
+        Stop-Stack "Failed to grant DB privileges: $($r3.Output). Check: $ContainerEngine logs $($Config.DbContainer)"
+    }
+    Write-Ok "DB ready (user=$user)"
 
     Write-Ok "pgAdmin ready (port $($Config.PgAdminPort))"
     Stop-PodmanTunnel
@@ -542,6 +692,9 @@ $frontendDir = Join-Path $Root 'frontend'
         Write-Info "appsettings.json patched (DB: $($env['DB_USER'])@${dbHost}:${hostDbPort}/$($env['DB_NAME']))"
     }
 
+    Stop-OrphanedService $Config.ApiPort     'API'
+    Stop-OrphanedService $Config.FrontendPort 'Frontend'
+
     Write-Info 'Building backend (first run may take a moment)...'
     $buildResult = Invoke-Tool 'dotnet' @(
         'build', (Join-Path $backendDir $Config.BackendProject),
@@ -553,7 +706,7 @@ $frontendDir = Join-Path $Root 'frontend'
     }
     Write-Ok 'Backend built'
 
-    $providerEnv = if ($useSqlite) { "`$env:ConnectionStrings__Provider = 'SQLite'; " } else { '' }
+    $providerEnv = if ($useSqlite) { "`$env:ConnectionStrings__Provider = 'SQLite'; " } else { "`$env:ConnectionStrings__Provider = 'PostgreSQL'; " }
     $backendCmd = "Set-Location '$backendDir'; " +
         "`$env:ASPNETCORE_ENVIRONMENT = 'Development'; " +
         "`$env:ConnectionStrings__Database = '$connStr'; " +
@@ -567,7 +720,7 @@ $frontendDir = Join-Path $Root 'frontend'
         -PassThru
     Write-Ok "Backend window opened (http://localhost:$($Config.ApiPort))"
 
-    $frontendCmd = "Set-Location '$frontendDir'; `$env:NG_CLI_ANALYTICS = 'false'; Write-Host 'Starting frontend...' -ForegroundColor Cyan; npm install --silent; ng serve"
+    $frontendCmd = "Set-Location '$frontendDir'; `$env:NG_CLI_ANALYTICS = 'false'; Write-Host 'Starting frontend...' -ForegroundColor Cyan; npm install; ng serve"
     $frontendProc = Start-Process powershell `
         -ArgumentList '-NoExit', '-Command', $frontendCmd `
         -WindowStyle Normal `
@@ -584,9 +737,31 @@ $frontendDir = Join-Path $Root 'frontend'
         exit 1
     }
 
-    $frontendUrl = "http://localhost:$($Config.FrontendPort)"
-    if (-not (Wait-Service $frontendUrl 'Frontend' $Config.FrontendTimeout)) {
-        Write-Err 'Frontend did not start. Check the Frontend window for errors.'
+    $frontendUrl   = "http://localhost:$($Config.FrontendPort)"
+    $feMaxWait     = 300   # hard ceiling (s) — covers catastrophic slow-machine scenarios
+    $fePhase       = 60    # poll in 60-second phases
+    $feElapsed     = 0
+    $frontendReady = $false
+
+    while (-not $frontendReady -and $feElapsed -lt $feMaxWait) {
+        $remaining     = [Math]::Min($fePhase, $feMaxWait - $feElapsed)
+        $frontendReady = Wait-Service $frontendUrl 'Frontend' $remaining $frontendProc
+        $feElapsed    += $remaining
+
+        if (-not $frontendReady) {
+            if ($frontendProc.HasExited) { break }   # crashed — no point waiting more
+            if ($feElapsed -lt $feMaxWait) {
+                Write-Info "Frontend still compiling... ($feElapsed s elapsed, up to $feMaxWait s total)"
+            }
+        }
+    }
+
+    if (-not $frontendReady) {
+        if ($frontendProc.HasExited) {
+            Write-Err 'Frontend process crashed. Check the Frontend window for errors.'
+        } else {
+            Write-Err "Frontend did not respond in $feMaxWait s. On a slow machine this can happen — check the Frontend window."
+        }
         exit 1
     }
 
@@ -607,6 +782,7 @@ finally {
         Stop-Process -Id $frontendProc.Id -Force -ErrorAction SilentlyContinue
         Write-Host '  Frontend window closed.' -ForegroundColor DarkGray
     }
+    Stop-PodmanTunnel
     Write-Host '  Dev environment stopped.' -ForegroundColor DarkGray
     Write-Host '  If any service window remains open, close it manually.' -ForegroundColor DarkGray
 }

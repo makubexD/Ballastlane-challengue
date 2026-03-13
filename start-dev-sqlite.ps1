@@ -100,6 +100,22 @@ function New-RandomSecret {
     return [Convert]::ToBase64String($bytes)
 }
 
+function Stop-OrphanedService {
+    param([int]$Port, [string]$Label)
+    $listeners = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+    if (-not $listeners) { return }
+    $procs = @(
+        $listeners.OwningProcess | Sort-Object -Unique |
+        ForEach-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue } |
+        Where-Object { $_ -and $_.ProcessName -notmatch 'podman|docker|ssh|vpnkit|wslrelay' }
+    )
+    foreach ($proc in $procs) {
+        Write-Warn "Stopping orphaned $Label on port $Port (PID $($proc.Id) / $($proc.ProcessName))"
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    }
+    if ($procs.Count -gt 0) { Start-Sleep -Milliseconds 500 }
+}
+
 # Poll an HTTP endpoint until ready. Pass $Process to detect early process crash.
 function Wait-Service {
     param(
@@ -228,6 +244,9 @@ $backendProc  = $null
 $frontendProc = $null
 
 try {
+    Stop-OrphanedService $Config.ApiPort     'API'
+    Stop-OrphanedService $Config.FrontendPort 'Frontend'
+
     Write-Info 'Building backend (first run may take a moment)...'
     $buildResult = Invoke-Tool 'dotnet' @(
         'build', (Join-Path $backendDir $Config.BackendProject),
