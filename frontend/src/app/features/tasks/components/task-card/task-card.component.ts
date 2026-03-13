@@ -31,26 +31,26 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
           <span class="text-xs text-gray-600 self-center mr-1">Delete?</span>
           <button
             type="button"
-            class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+            class="btn-sm-danger"
             data-testid="confirm-delete-button"
             (click)="confirmDelete()"
           >Confirm</button>
           <button
             type="button"
-            class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            class="btn-sm-secondary"
             data-testid="cancel-delete-button"
             (click)="cancelDelete()"
           >Cancel</button>
         } @else {
           <button
             type="button"
-            class="px-3 py-1 text-xs font-medium text-brand-700 bg-brand-50 rounded-md hover:bg-brand-100 transition-colors"
+            class="btn-sm-ghost-brand"
             data-testid="edit-button"
             (click)="onEdit()"
           >Edit</button>
           <button
             type="button"
-            class="px-3 py-1 text-xs font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+            class="btn-sm-ghost-danger"
             data-testid="delete-button"
             (click)="onDelete()"
           >Delete</button>
