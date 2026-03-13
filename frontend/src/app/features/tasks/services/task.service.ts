@@ -23,7 +23,7 @@ export class TaskService {
   readonly hasNextPage = signal<boolean>(false);
   readonly currentPage = signal<number>(1);
 
-  getAll(page = 1, pageSize = 20): void {
+  getAll(page = 1, pageSize = 5): void {
     this.isLoading.set(true);
     this.currentPage.set(page);
     this.http
