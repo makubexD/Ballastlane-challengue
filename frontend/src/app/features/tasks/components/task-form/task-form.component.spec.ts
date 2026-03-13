@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ComponentFixture } from '@angular/core/testing';
 import { TaskFormComponent } from './task-form.component';
 import { FIXTURE_TASKS } from '../../../../__fixtures__/task.fixtures';
-import { CreateTaskRequest } from '../../services/task.service';
+import { CreateTaskRequest } from '../../models/task.model';
 
 describe('TaskFormComponent', () => {
   let fixture: ComponentFixture<TaskFormComponent>;
@@ -16,9 +16,11 @@ describe('TaskFormComponent', () => {
     fixture = TestBed.createComponent(TaskFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+
+    vi.clearAllMocks();
   });
 
-  it('should show "Title is required" when title is empty and form submitted', async () => {
+  it('should show "Title is required" when title is empty and form submitted', () => {
     const submitBtn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
       '[data-testid="submit-button"]'
     );
@@ -31,7 +33,7 @@ describe('TaskFormComponent', () => {
     expect(titleError?.textContent?.trim()).toBe('Title is required');
   });
 
-  it('should show "Due date must be in the future" when past date submitted', async () => {
+  it('should show "Due date must be in the future" when past date submitted', () => {
     component.form.controls.title.setValue('Test task');
     component.form.controls.description.setValue('Some description');
     component.form.controls.status.setValue('Todo');
@@ -51,9 +53,8 @@ describe('TaskFormComponent', () => {
     expect(dueDateError?.textContent?.trim()).toBe('Due date must be in the future');
   });
 
-  it('should emit formSubmit with correct data when form is valid', async () => {
-    const emitted: unknown[] = [];
-    component.formSubmit.subscribe((data: unknown) => emitted.push(data));
+  it('should emit formSubmit with correct data when form is valid', () => {
+    const emitSpy = vi.spyOn(component.formSubmit, 'emit');
 
     component.form.controls.title.setValue('My task');
     component.form.controls.description.setValue('My description');
@@ -67,22 +68,34 @@ describe('TaskFormComponent', () => {
     submitBtn?.click();
     fixture.detectChanges();
 
-    expect(emitted).toHaveLength(1);
-    const submitted = emitted[0] as CreateTaskRequest;
+    expect(emitSpy).toHaveBeenCalledOnce();
+    const submitted = emitSpy.mock.calls[0][0] as CreateTaskRequest;
     expect(submitted.title).toBe('My task');
     expect(submitted.description).toBe('My description');
     expect(submitted.status).toBe('InProgress');
     expect(submitted.dueDate).toBeTruthy();
   });
 
-  it('should pre-populate fields when task input is provided (edit mode)', async () => {
-    component.task = FIXTURE_TASKS[0];
-    component.ngOnChanges({ task: { currentValue: FIXTURE_TASKS[0], previousValue: null, firstChange: true, isFirstChange: () => true } });
+  it('should pre-populate fields when task input is provided for edit mode', async () => {
+    fixture.componentRef.setInput('task', FIXTURE_TASKS[0]);
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(component.form.controls.title.value).toBe('Fix login bug');
     expect(component.form.controls.description.value).toBe('Session expires too early');
     expect(component.form.controls.status.value).toBe('Todo');
     expect(component.form.controls.dueDate.value).toBe('2027-06-01');
+  });
+
+  it('should emit formCancel when cancel button is clicked', () => {
+    const emitSpy = vi.spyOn(component.formCancel, 'emit');
+
+    const cancelBtn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '[data-testid="cancel-button"]'
+    );
+    cancelBtn?.click();
+    fixture.detectChanges();
+
+    expect(emitSpy).toHaveBeenCalledOnce();
   });
 });

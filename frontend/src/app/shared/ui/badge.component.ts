@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, Input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, input } from '@angular/core';
 
 @Component({
   selector: 'app-badge',
@@ -7,22 +7,22 @@ import { Component, ChangeDetectionStrategy, Input } from '@angular/core';
   template: `
     <span
       class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-      [class]="badgeClass"
+      [class]="badgeClass()"
       data-testid="badge"
     >
-      {{ status }}
+      {{ status() }}
     </span>
   `
 })
 export class BadgeComponent {
-  @Input() status: 'Todo' | 'InProgress' | 'Done' = 'Todo';
+  status = input<'Todo' | 'InProgress' | 'Done'>('Todo');
 
-  get badgeClass(): string {
+  badgeClass = computed(() => {
     const classes: Record<string, string> = {
       Todo: 'bg-blue-100 text-blue-800',
       InProgress: 'bg-yellow-100 text-yellow-800',
       Done: 'bg-green-100 text-green-800'
     };
-    return classes[this.status] ?? 'bg-gray-100 text-gray-800';
-  }
+    return classes[this.status()] ?? 'bg-gray-100 text-gray-800';
+  });
 }
