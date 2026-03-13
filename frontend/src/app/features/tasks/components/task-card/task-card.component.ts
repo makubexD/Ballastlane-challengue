@@ -9,7 +9,7 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DatePipe, BadgeComponent],
   template: `
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4" data-testid="task-card">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150" data-testid="task-card">
       <div class="flex items-start justify-between gap-2">
         <div class="flex-1 min-w-0">
           <h3 class="text-sm font-medium text-gray-900 truncate" data-testid="task-title">
@@ -21,10 +21,10 @@ import { BadgeComponent } from '../../../../shared/ui/badge.component';
         </div>
         <app-badge [status]="task().status" />
       </div>
-      <div class="mt-3 flex justify-end gap-2">
+      <div class="mt-2 sm:mt-3 flex justify-end gap-2">
         <button
           type="button"
-          class="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+          class="px-3 py-1 text-xs font-medium text-brand-700 bg-brand-50 rounded-md hover:bg-brand-100 transition-colors"
           data-testid="edit-task-button"
           (click)="onEdit()"
         >

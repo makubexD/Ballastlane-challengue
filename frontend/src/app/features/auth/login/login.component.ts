@@ -9,9 +9,9 @@ import { AuthService } from '../../../core/auth/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, RouterLink],
   template: `
-    <div class="min-h-screen flex items-center justify-center bg-gray-50">
-      <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
-        <h1 class="text-2xl font-bold text-center text-gray-900">Sign in</h1>
+    <div class="min-h-screen flex items-center justify-center bg-linear-to-br from-brand-50 to-gray-100 px-4">
+      <div class="max-w-md w-full space-y-6 sm:space-y-8 p-6 sm:p-8 bg-white rounded-xl shadow-lg">
+        <h1 class="text-xl sm:text-2xl font-bold text-center text-gray-900">Sign in</h1>
 
         @if (serverError()) {
           <div data-testid="server-error" class="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded">
@@ -26,7 +26,7 @@ import { AuthService } from '../../../core/auth/auth.service';
               data-testid="email-input"
               type="email"
               formControlName="email"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               placeholder="you@example.com"
             />
             @if (form.controls.email.touched && form.controls.email.errors?.['required']) {
@@ -43,7 +43,7 @@ import { AuthService } from '../../../core/auth/auth.service';
               data-testid="password-input"
               type="password"
               formControlName="password"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             />
             @if (form.controls.password.touched && form.controls.password.errors?.['required']) {
               <p data-testid="password-error" class="mt-1 text-sm text-red-600">Password is required</p>
@@ -54,7 +54,7 @@ import { AuthService } from '../../../core/auth/auth.service';
             data-testid="submit-button"
             type="submit"
             [disabled]="isSubmitting()"
-            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50"
           >
             @if (isSubmitting()) { Signing in... } @else { Sign in }
           </button>
@@ -62,7 +62,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 
         <p class="text-center text-sm text-gray-600">
           Don't have an account?
-          <a data-testid="register-link" routerLink="/register" class="text-indigo-600 hover:underline">Create account</a>
+          <a data-testid="register-link" routerLink="/register" class="text-brand-600 hover:underline">Create account</a>
         </p>
       </div>
     </div>

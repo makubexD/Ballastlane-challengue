@@ -10,9 +10,9 @@ import { passwordStrengthValidator } from '../../../shared/validators/password-s
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, RouterLink],
   template: `
-    <div class="min-h-screen flex items-center justify-center bg-gray-50">
-      <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
-        <h1 class="text-2xl font-bold text-center text-gray-900">Create account</h1>
+    <div class="min-h-screen flex items-center justify-center bg-linear-to-br from-brand-50 to-gray-100 px-4">
+      <div class="max-w-md w-full space-y-6 sm:space-y-8 p-6 sm:p-8 bg-white rounded-xl shadow-lg">
+        <h1 class="text-xl sm:text-2xl font-bold text-center text-gray-900">Create account</h1>
 
         @if (serverError()) {
           <div data-testid="server-error" class="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded">
@@ -24,7 +24,7 @@ import { passwordStrengthValidator } from '../../../shared/validators/password-s
           <div>
             <label class="block text-sm font-medium text-gray-700">Email</label>
             <input data-testid="email-input" type="email" formControlName="email"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
             @if (form.controls.email.touched && form.controls.email.errors?.['required']) {
               <p data-testid="email-error" class="mt-1 text-sm text-red-600">Email is required</p>
             }
@@ -33,7 +33,7 @@ import { passwordStrengthValidator } from '../../../shared/validators/password-s
           <div>
             <label class="block text-sm font-medium text-gray-700">Password</label>
             <input data-testid="password-input" type="password" formControlName="password"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
             @if (form.controls.password.touched && form.controls.password.errors?.['minLength']) {
               <p data-testid="password-length-error" class="mt-1 text-sm text-red-600">Password must be at least 8 characters</p>
             }
@@ -46,14 +46,14 @@ import { passwordStrengthValidator } from '../../../shared/validators/password-s
           </div>
 
           <button data-testid="submit-button" type="submit" [disabled]="isSubmitting()"
-            class="w-full py-2 px-4 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50">
+            class="w-full py-2 px-4 bg-brand-600 text-white rounded-md hover:bg-brand-700 disabled:opacity-50">
             @if (isSubmitting()) { Creating account... } @else { Create account }
           </button>
         </form>
 
         <p class="text-center text-sm text-gray-600">
           Already have an account?
-          <a data-testid="login-link" routerLink="/login" class="text-indigo-600 hover:underline">Sign in</a>
+          <a data-testid="login-link" routerLink="/login" class="text-brand-600 hover:underline">Sign in</a>
         </p>
       </div>
     </div>

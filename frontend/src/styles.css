@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@theme {
+  --color-brand-50: oklch(97% 0.03 250);
+  --color-brand-100: oklch(93% 0.06 250);
+  --color-brand-500: oklch(58% 0.22 250);
+  --color-brand-600: oklch(52% 0.24 250);
+  --color-brand-700: oklch(45% 0.24 250);
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
