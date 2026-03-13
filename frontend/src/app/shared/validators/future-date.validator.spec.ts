@@ -45,4 +45,25 @@ describe('futureDateValidator', () => {
 
     expect(result).toBeNull();
   });
+
+  it('should return null for a date that is exactly tomorrow', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+
+    const control = new FormControl('2026-01-16');
+
+    const result = futureDateValidator(control);
+
+    expect(result).toBeNull();
+
+    vi.useRealTimers();
+  });
+
+  it('should return null for a non-date string that sorts after today lexicographically', () => {
+    const control = new FormControl('not-a-date');
+
+    const result = futureDateValidator(control);
+
+    expect(result).toBeNull();
+  });
 });

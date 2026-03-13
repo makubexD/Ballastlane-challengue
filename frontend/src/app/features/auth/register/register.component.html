@@ -25,6 +25,9 @@
             @if (form.controls.email.touched && form.controls.email.errors?.['required']) {
               <p data-testid="email-error" class="mt-1 text-sm text-red-600">Email is required</p>
             }
+            @if (form.controls.email.touched && form.controls.email.errors?.['email']) {
+              <p data-testid="email-format-error" class="mt-1 text-sm text-red-600">Enter a valid email address</p>
+            }
           </div>
 
           <div>

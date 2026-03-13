@@ -104,4 +104,49 @@ describe('LoginComponent', () => {
     expect(serverError).toBeTruthy();
     expect(serverError.textContent).toContain(ERROR_MESSAGE);
   });
+
+  it('should show password required error when form submitted with empty password', () => {
+    component.form.controls.email.setValue(VALID_EMAIL);
+    component.form.controls.password.setValue('');
+
+    component.onSubmit();
+    fixture.detectChanges();
+
+    const passwordError = fixture.nativeElement.querySelector('[data-testid="password-error"]');
+
+    expect(passwordError).toBeTruthy();
+    expect(passwordError.textContent.toLowerCase()).toContain('required');
+  });
+
+  it('should disable submit button when isSubmitting is true and form is submitted', async () => {
+    mockAuthService.login.mockReturnValue(of(MOCK_AUTH_RESPONSE));
+    component.isSubmitting.set(true);
+
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('[data-testid="submit-button"]');
+
+    expect(button.disabled).toBe(true);
+  });
+
+  it('should toggle password input type when visibility button is clicked', async () => {
+    fixture.detectChanges();
+
+    const passwordInput = fixture.nativeElement.querySelector('[data-testid="password-input"]');
+    const toggleButton = fixture.nativeElement.querySelector('[data-testid="toggle-password-button"]');
+
+    expect(passwordInput.type).toBe('password');
+
+    toggleButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(passwordInput.type).toBe('text');
+
+    toggleButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(passwordInput.type).toBe('password');
+  });
 });

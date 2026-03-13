@@ -98,4 +98,38 @@ describe('TaskFormComponent', () => {
 
     expect(emitSpy).toHaveBeenCalledOnce();
   });
+
+  it('should not emit formSubmit when only title is filled and other required fields are empty', () => {
+    const emitSpy = vi.spyOn(component.formSubmit, 'emit');
+
+    component.form.controls.title.setValue('Only a title');
+
+    const submitBtn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '[data-testid="submit-button"]'
+    );
+    submitBtn?.click();
+    fixture.detectChanges();
+
+    expect(emitSpy).not.toHaveBeenCalled();
+  });
+
+  it('should show description error and due date error when only title is filled and form is submitted', () => {
+    component.form.controls.title.setValue('Only a title');
+
+    const submitBtn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '[data-testid="submit-button"]'
+    );
+    submitBtn?.click();
+    fixture.detectChanges();
+
+    const descriptionError = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="description-error"]'
+    );
+    const dueDateError = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="due-date-error"]'
+    );
+
+    expect(descriptionError?.textContent?.trim()).toBe('Description is required');
+    expect(dueDateError?.textContent?.trim()).toBe('Due date is required');
+  });
 });

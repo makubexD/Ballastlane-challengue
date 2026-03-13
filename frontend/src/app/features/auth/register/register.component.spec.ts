@@ -84,4 +84,99 @@ describe('RegisterComponent', () => {
     expect(serverError).toBeTruthy();
     expect(serverError.textContent).toContain(CONFLICT_ERROR_MESSAGE);
   });
+
+  it('should show email required error when form submitted with empty email', () => {
+    component.form.controls.email.setValue('');
+    component.form.controls.password.setValue(VALID_PASSWORD);
+
+    component.onSubmit();
+    fixture.detectChanges();
+
+    const emailError = fixture.nativeElement.querySelector('[data-testid="email-error"]');
+
+    expect(emailError).toBeTruthy();
+    expect(emailError.textContent).toContain('required');
+  });
+
+  it('should show email format error when email has invalid format and form is submitted', () => {
+    component.form.controls.email.setValue('notanemail');
+    component.form.controls.email.markAsTouched();
+    component.form.controls.password.setValue(VALID_PASSWORD);
+
+    component.onSubmit();
+    fixture.detectChanges();
+
+    const emailFormatError = fixture.nativeElement.querySelector('[data-testid="email-format-error"]');
+
+    expect(emailFormatError).toBeTruthy();
+    expect(emailFormatError.textContent).toContain('valid email');
+  });
+
+  it('should show password uppercase error when password has no uppercase letter', () => {
+    component.form.controls.password.setValue('nouppercase1');
+    component.form.controls.password.markAsTouched();
+
+    fixture.detectChanges();
+
+    const uppercaseError = fixture.nativeElement.querySelector('[data-testid="password-uppercase-error"]');
+
+    expect(uppercaseError).toBeTruthy();
+    expect(uppercaseError.textContent).toContain('uppercase');
+  });
+
+  it('should show password digit error when password has no number', () => {
+    component.form.controls.password.setValue('NoDigitsHere');
+    component.form.controls.password.markAsTouched();
+
+    fixture.detectChanges();
+
+    const numericError = fixture.nativeElement.querySelector('[data-testid="password-numeric-error"]');
+
+    expect(numericError).toBeTruthy();
+    expect(numericError.textContent).toContain('number');
+  });
+
+  it('should disable submit button when isSubmitting is true', () => {
+    component.isSubmitting.set(true);
+
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('[data-testid="submit-button"]');
+
+    expect(button.disabled).toBe(true);
+  });
+
+  it('should toggle password input type when visibility button is clicked', async () => {
+    fixture.detectChanges();
+
+    const passwordInput = fixture.nativeElement.querySelector('[data-testid="password-input"]');
+    const toggleButton = fixture.nativeElement.querySelector('[data-testid="toggle-password-button"]');
+
+    expect(passwordInput.type).toBe('password');
+
+    toggleButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(passwordInput.type).toBe('text');
+
+    toggleButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(passwordInput.type).toBe('password');
+  });
+
+  it('should navigate to /tasks after successful registration', async () => {
+    mockAuthService.register.mockReturnValue(of(MOCK_REGISTER_RESPONSE));
+    mockAuthService.login.mockReturnValue(of(MOCK_AUTH_RESPONSE));
+
+    component.form.controls.email.setValue(VALID_EMAIL);
+    component.form.controls.password.setValue(VALID_PASSWORD);
+
+    component.onSubmit();
+    await fixture.whenStable();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/tasks']);
+  });
 });
