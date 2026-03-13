@@ -4,7 +4,7 @@
     @if (!showForm() && !editingTask()) {
       <button
         type="button"
-        class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+        class="btn-primary"
         data-testid="new-task-button"
         (click)="showForm.set(true)"
       >
@@ -36,7 +36,7 @@
   @if (errorMessage()) {
     <div
       data-testid="error-banner"
-      class="mb-4 flex items-center justify-between bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg"
+      class="alert-error mb-4 flex items-center justify-between"
     >
       <span class="text-sm">{{ errorMessage() }}</span>
       <button

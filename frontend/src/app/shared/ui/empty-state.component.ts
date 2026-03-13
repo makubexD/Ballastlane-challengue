@@ -16,7 +16,7 @@ import { Component, ChangeDetectionStrategy, input, output } from '@angular/core
       @if (actionLabel()) {
         <button
           type="button"
-          class="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+          class="btn-primary"
           data-testid="empty-state-action"
           (click)="action.emit()"
         >
