@@ -1,11 +1,31 @@
+# BallastLane — Full-Stack Docker Compose
+#
+# Runs the complete application stack: PostgreSQL, backend API, Angular frontend, and pgAdmin.
+# All services communicate on the internal `ballastlane_net` network.
+# Only the ports listed under each service's `ports:` section are accessible from your machine.
+#
+# HOST PORT DEFAULTS (override any in .env if already in use):
+#   APP_PORT=3000     → frontend at http://localhost:3000
+#   API_PORT=5000     → API direct at http://localhost:5000  (Swagger, health checks)
+#   DB_PORT=5432      → PostgreSQL at localhost:5432
+#   PGADMIN_PORT=5050 → pgAdmin at http://localhost:5050
+#
+# Usage:
+#   docker compose up --build   # first run or after code changes
+#   docker compose up           # subsequent runs
+#   docker compose down         # stop (data preserved in volumes)
+#   docker compose down -v      # stop + delete all volumes (clean slate)
+
 services:
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: ballastlane_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-ballastlane}
-      POSTGRES_USER: ${DB_USER:-ballastlane}
+      POSTGRES_DB:       ${DB_NAME:-ballastlane}
+      POSTGRES_USER:     ${DB_USER:-ballastlane}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-ballastlane_dev}
     ports:
       - "${DB_PORT:-5432}:5432"
@@ -13,27 +33,79 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ballastlane} -d ${DB_NAME:-ballastlane}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ballastlane_net
 
+  # ── Backend API (.NET 8) ──────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ballastlane_api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT:        Production
+      ASPNETCORE_HTTP_PORTS:         "8080"
+      ConnectionStrings__Database:   "Host=postgres;Port=5432;Database=${DB_NAME:-ballastlane};Username=${DB_USER:-ballastlane};Password=${DB_PASSWORD:-ballastlane_dev}"
+      ConnectionStrings__Provider:   PostgreSQL
+      Jwt__Secret:                   ${JWT_SECRET:-change-me-to-a-256-bit-secret}
+      Jwt__ExpiryMinutes:            ${JWT_EXPIRY_MINUTES:-60}
+      # CORS is only needed for local dev — nginx proxies API calls in Docker (same origin).
+      # Kept here as a reference; AllowedOrigins in appsettings.json covers local dev.
+    ports:
+      - "${API_PORT:-5000}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - dataprotection_keys:/home/appuser/.aspnet/DataProtection-Keys
+    networks:
+      - ballastlane_net
+
+  # ── Frontend (Angular 20 via nginx) ───────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ballastlane_frontend
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:80"
+    depends_on:
+      - backend
+    networks:
+      - ballastlane_net
+
+  # ── pgAdmin ───────────────────────────────────────────────────────────────
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: ballastlane_pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@ballastlane.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_DEFAULT_EMAIL:              admin@ballastlane.com
+      PGADMIN_DEFAULT_PASSWORD:           admin
+      PGADMIN_CONFIG_SERVER_MODE:         "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
     ports:
-      - "5050:80"
+      - "${PGADMIN_PORT:-5050}:80"
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - ballastlane_net
 
+# ── Volumes ───────────────────────────────────────────────────────────────────
 volumes:
   postgres_data:
   pgadmin_data:
+  dataprotection_keys:
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  ballastlane_net:
+    driver: bridge

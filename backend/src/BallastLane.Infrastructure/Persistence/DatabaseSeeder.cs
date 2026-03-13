@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.Common;
 using BallastLane.Domain.Interfaces;
+using Npgsql;
 using BallastLane.Domain.ValueObjects;
 using BallastLane.Infrastructure.Common;
 using BallastLane.Infrastructure.Settings;
@@ -91,6 +92,11 @@ public sealed class DatabaseSeeder(
 
     private static void AddParam(IDbCommand command, string name, object value)
     {
+        if (command is NpgsqlCommand npgsql)
+        {
+            npgsql.Parameters.AddWithValue(name, value);
+            return;
+        }
         var param = command.CreateParameter();
         param.ParameterName = name;
         param.Value = value;
@@ -101,12 +107,13 @@ public sealed class DatabaseSeeder(
     /// SQLite stores GUIDs as TEXT (UUID dash format); PostgreSQL has a native UUID type.
     /// Npgsql auto-converts <see cref="Guid"/> to UUID. For provider-agnostic code, always pass strings.
     /// </summary>
-    private string FormatGuid(Guid value) =>
-        _provider == "SQLite" ? value.ToString("D") : value.ToString("D");
+    private object FormatGuid(Guid value) =>
+        _provider == "SQLite" ? (object)value.ToString("D") : value;
 
     /// <summary>
     /// SQLite stores DateTimes as ISO 8601 TEXT; PostgreSQL has native TIMESTAMPTZ.
-    /// Npgsql accepts <see cref="DateTime"/> directly. Pass ISO 8601 string for both to stay provider-agnostic.
+    /// Npgsql maps <see cref="DateTime"/> → timestamptz directly; pass the object to avoid text-type mismatch.
     /// </summary>
-    private string FormatDateTime(DateTime value) => value.ToString("O");
+    private object FormatDateTime(DateTime value) =>
+        _provider == "SQLite" ? (object)value.ToString("O") : value;
 }
