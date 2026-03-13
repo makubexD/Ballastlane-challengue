@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     BallastLane — one-command developer setup.
@@ -53,6 +53,8 @@ $Config = [ordered]@{
     TunnelTimeout    = 8
 }
 
+$script:PodmanTunnel = $null   # set by Initialize-Podman; null on Docker/SQLite paths
+
 # ─── Color helpers ────────────────────────────────────────────────────────────
 
 function Write-Ok   { param($msg) Write-Host "  [OK] $msg" -ForegroundColor Green }
@@ -99,7 +101,7 @@ function Invoke-Tool {
         return @{ Output = ($output -join ' '); ExitCode = $LASTEXITCODE }
     }
     catch {
-        return @{ Output = ''; ExitCode = 1 }
+        return @{ Output = $_.Exception.Message; ExitCode = 1 }
     }
 }
 
@@ -177,7 +179,7 @@ function Resolve-Port {
     if ($names | Where-Object { $_ -match 'podman|docker|ssh|vpnkit|wslrelay' }) { return $Port }
     $alt = $Port + 2
     while ($alt -lt 5500 -and (Get-NetTCPConnection -LocalPort $alt -State Listen -ErrorAction SilentlyContinue)) { $alt++ }
-    Write-Warn "Port $Port in use by '$($names -join ', ')' — remapping to $alt."
+    Write-Warn "Port $Port in use by '$($names -join ', ')' - remapping to $alt."
     $env:DB_PORT = "$alt"
     return $alt
 }
@@ -223,7 +225,7 @@ function Stop-Stack {
     param([string]$ErrorMsg)
     Write-Err $ErrorMsg
     if ($ComposeEngine) {
-        Invoke-Tool $ComposeEngine.Cmd ($ComposeEngine.Args + @('down', '--remove-orphans'))
+        $null = Invoke-Tool $ComposeEngine.Cmd ($ComposeEngine.Args + @('down', '--remove-orphans'))
     }
     Stop-PodmanTunnel
     Set-Location $prevLocation
@@ -298,7 +300,7 @@ compose_providers = ['$pdComposeExe']
         } catch { Start-Sleep -Milliseconds 300 }
     }
     if (-not $sshReachable) {
-        Write-Warn "Podman machine SSH not reachable on port $sshPort — resetting WSL2 network stack..."
+        Write-Warn "Podman machine SSH not reachable on port $sshPort - resetting WSL2 network stack..."
         Write-Info 'Running: wsl --shutdown (resets WSL2 port forwarding)...'
         wsl --shutdown 2>&1 | Out-Null
         Start-Sleep -Seconds 3
@@ -523,7 +525,7 @@ if ($nodeMajor -lt $Config.NodeMin) {
     Write-Err "Node.js $($node.Output) is too old. Version $($Config.NodeMin).x+ required."
     exit 1
 } elseif ($nodeMajor -lt $Config.NodeIdeal) {
-    Write-Warn "Node.js $($node.Output) — version $($Config.NodeIdeal) LTS recommended."
+    Write-Warn "Node.js $($node.Output) - version $($Config.NodeIdeal) LTS recommended."
 } else {
     Write-Ok "Node.js $($node.Output)"
 }
@@ -601,9 +603,9 @@ if (-not $useSqlite) {
     } catch { <# containers may not exist on first run or after compose down — expected #> }
 
     Write-Info "Running: $composeLabel up -d postgres pgadmin"
-    $dcUp = Invoke-Tool $ComposeEngine.Cmd ($ComposeEngine.Args + @('up', '-d', 'postgres', 'pgadmin'))
-    if ($dcUp.ExitCode -ne 0) {
-        Stop-Stack "Compose failed: $($dcUp.Output)"
+    & $ComposeEngine.Cmd @($ComposeEngine.Args + @('up', '-d', 'postgres', 'pgadmin'))
+    if ($LASTEXITCODE -ne 0) {
+        Stop-Stack 'docker compose up failed — see output above for details'
     }
 
     $healthElapsed = 0
