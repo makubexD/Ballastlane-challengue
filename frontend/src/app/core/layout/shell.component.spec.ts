@@ -73,4 +73,12 @@ describe('ShellComponent', () => {
     expect(titleSpan).toBeTruthy();
     expect((titleSpan as HTMLElement).classList.contains('min-w-0')).toBe(true);
   });
+
+  it('should have min-w-0 on the nav left group to allow title truncation', () => {
+    const allDivs = Array.from(fixture.nativeElement.querySelectorAll('div')) as HTMLElement[];
+    const navLeftGroup = allDivs.find(el => el.classList.contains('flex-1') && el.classList.contains('min-w-0'));
+
+    expect(navLeftGroup).toBeTruthy();
+    expect(navLeftGroup!.classList.contains('min-w-0')).toBe(true);
+  });
 });

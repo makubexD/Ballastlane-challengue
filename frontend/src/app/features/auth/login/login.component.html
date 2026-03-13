@@ -11,6 +11,12 @@
       <div class="max-w-md w-full space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 bg-white rounded-xl shadow-lg">
         <h1 class="text-xl sm:text-2xl font-bold text-center text-gray-900">Sign in</h1>
 
+        @if (returnUrl()) {
+          <div data-testid="redirect-notice" class="alert-info mb-4 text-sm">
+            Please sign in to continue.
+          </div>
+        }
+
         @if (serverError()) {
           <div data-testid="server-error" class="alert-error">
             {{ serverError() }}

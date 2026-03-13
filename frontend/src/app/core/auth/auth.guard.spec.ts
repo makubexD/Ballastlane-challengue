@@ -26,6 +26,6 @@ describe('authGuard', () => {
     );
 
     const router = TestBed.inject(Router);
-    expect(result).toEqual(router.createUrlTree(['/login']));
+    expect(result).toEqual(router.createUrlTree(['/login'], { queryParams: { returnUrl: '/tasks' } }));
   });
 });

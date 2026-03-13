@@ -1,11 +1,12 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, ActivatedRoute, convertToParamMap } from '@angular/router';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../../core/auth/auth.service';
 
+const RETURN_URL = '/tasks';
 const VALID_EMAIL = 'user@example.com';
 const VALID_PASSWORD = 'SecurePass1';
 const MOCK_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock';
@@ -153,5 +154,68 @@ describe('LoginComponent', () => {
   it('should stack vertically on narrow screens', () => {
     const container = fixture.nativeElement.querySelector('div');
     expect(container.classList.contains('flex-col')).toBe(true);
+  });
+
+  it('should navigate to /tasks when no returnUrl is present', () => {
+    mockAuthService.login.mockReturnValue(of(undefined));
+
+    component.form.controls.email.setValue(VALID_EMAIL);
+    component.form.controls.password.setValue(VALID_PASSWORD);
+    component.onSubmit();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/tasks']);
+  });
+});
+
+describe('LoginComponent — with returnUrl query param', () => {
+  let fixture: ComponentFixture<LoginComponent>;
+  let component: LoginComponent;
+  let mockAuthService: { login: ReturnType<typeof vi.fn>; isAuthenticated: ReturnType<typeof signal<boolean>>; token: ReturnType<typeof signal<string | null>> };
+  let router: Router;
+
+  beforeEach(async () => {
+    mockAuthService = {
+      login: vi.fn(),
+      isAuthenticated: signal(false),
+      token: signal(null)
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [LoginComponent],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: mockAuthService },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: convertToParamMap({ returnUrl: RETURN_URL }) } }
+        }
+      ]
+    }).compileComponents();
+
+    router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should show redirect notice when returnUrl query param is present', async () => {
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const notice = fixture.nativeElement.querySelector('[data-testid="redirect-notice"]');
+
+    expect(notice).toBeTruthy();
+  });
+
+  it('should navigate to returnUrl after successful login', () => {
+    mockAuthService.login.mockReturnValue(of(undefined));
+
+    component.form.controls.email.setValue(VALID_EMAIL);
+    component.form.controls.password.setValue(VALID_PASSWORD);
+    component.onSubmit();
+
+    expect(router.navigate).toHaveBeenCalledWith([RETURN_URL]);
   });
 });

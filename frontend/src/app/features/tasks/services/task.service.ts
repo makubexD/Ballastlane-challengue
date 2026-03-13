@@ -3,12 +3,14 @@ import { HttpClient } from '@angular/common/http';
 import { retry } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { Task, CreateTaskRequest, UpdateTaskRequest, PagedResult } from '../models/task.model';
+import { ToastService } from '../../../shared/ui/toast/toast.service';
 
 export type { Task, CreateTaskRequest, UpdateTaskRequest, PagedResult };
 
 @Injectable({ providedIn: 'root' })
 export class TaskService {
   private readonly http = inject(HttpClient);
+  private readonly toastService = inject(ToastService);
   private readonly apiUrl = `${environment.apiUrl}/api/tasks`;
 
   readonly tasks = signal<Task[]>([]);
@@ -46,9 +48,11 @@ export class TaskService {
     this.http.post<Task>(this.apiUrl, req).subscribe({
       next: (task) => {
         this.tasks.update(tasks => [...tasks, task]);
+        this.toastService.success('Task created');
       },
       error: () => {
         this.createError.set('Failed to create task.');
+        this.toastService.error('Something went wrong. Please try again.');
       }
     });
   }
@@ -59,9 +63,11 @@ export class TaskService {
         this.tasks.update(tasks =>
           tasks.map(t => t.id === id ? updatedTask : t)
         );
+        this.toastService.success('Task updated');
       },
       error: () => {
         this.updateError.set('Failed to update task.');
+        this.toastService.error('Something went wrong. Please try again.');
       }
     });
   }
@@ -70,8 +76,12 @@ export class TaskService {
     const previous = this.tasks();
     this.tasks.update(tasks => tasks.filter(t => t.id !== id));
     this.http.delete<void>(`${this.apiUrl}/${id}`).subscribe({
+      next: () => {
+        this.toastService.success('Task deleted');
+      },
       error: () => {
         this.tasks.set(previous);
+        this.toastService.error('Something went wrong. Please try again.');
       }
     });
   }
