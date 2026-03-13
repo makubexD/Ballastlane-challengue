@@ -238,8 +238,13 @@ describe('RegisterComponent', () => {
     fixture.detectChanges();
 
     const label = fixture.nativeElement.querySelector('[data-testid="password-strength-label"]');
-
     expect(label).toBeTruthy();
     expect(label.textContent).toContain('Strong');
+
+    const strengthBar = fixture.nativeElement.querySelector('[data-testid="password-strength"]');
+    expect(strengthBar).toBeTruthy();
+    const segDivs = strengthBar.querySelectorAll('div.flex-1');
+    expect(segDivs.length).toBe(4);
+    expect(segDivs[3].className).toContain('bg-green-500');
   });
 });

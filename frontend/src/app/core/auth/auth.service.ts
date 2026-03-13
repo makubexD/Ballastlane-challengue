@@ -10,6 +10,8 @@ export type { LoginRequest, RegisterRequest, UserProfile };
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private static readonly SESSION_KEY = 'bl:hasSession';
+
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly toastService = inject(ToastService);
@@ -18,11 +20,15 @@ export class AuthService {
   readonly isAuthenticated = this._isAuthenticated.asReadonly();
 
   initialize(): Observable<void> {
+    if (!localStorage.getItem(AuthService.SESSION_KEY)) {
+      return of(undefined as unknown as void);
+    }
     return this.http
       .get<UserProfile>(`${environment.apiUrl}/api/auth/me`, { withCredentials: true })
       .pipe(
         tap(() => this._isAuthenticated.set(true)),
         catchError(() => {
+          localStorage.removeItem(AuthService.SESSION_KEY);
           this._isAuthenticated.set(false);
           return of(undefined as unknown as void);
         })
@@ -32,7 +38,10 @@ export class AuthService {
   login(request: LoginRequest): Observable<void> {
     return this.http
       .post<void>(`${environment.apiUrl}/api/auth/login`, request, { withCredentials: true })
-      .pipe(tap(() => this._isAuthenticated.set(true)));
+      .pipe(tap(() => {
+        localStorage.setItem(AuthService.SESSION_KEY, '1');
+        this._isAuthenticated.set(true);
+      }));
   }
 
   register(request: RegisterRequest): Observable<{ id: string; email: string }> {
@@ -48,11 +57,13 @@ export class AuthService {
       .post(`${environment.apiUrl}/api/auth/logout`, {}, { withCredentials: true })
       .subscribe({
         complete: () => {
+          localStorage.removeItem(AuthService.SESSION_KEY);
           this._isAuthenticated.set(false);
           this.toastService.info('Signed out successfully');
           this.router.navigate(['/login']);
         },
         error: () => {
+          localStorage.removeItem(AuthService.SESSION_KEY);
           this._isAuthenticated.set(false);
           this.toastService.info('Signed out successfully');
           this.router.navigate(['/login']);

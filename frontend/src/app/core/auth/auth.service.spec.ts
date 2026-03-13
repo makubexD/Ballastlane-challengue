@@ -28,9 +28,11 @@ describe('AuthService', () => {
 
   afterEach(() => {
     httpMock.verify();
+    localStorage.clear();
   });
 
   it('initialize() — should set isAuthenticated to true when /me returns 200', () => {
+    localStorage.setItem('bl:hasSession', '1');
     const mockProfile = { id: MOCK_USER_ID, email: VALID_EMAIL, createdAt: '2026-01-01T00:00:00Z' };
 
     service.initialize().subscribe();
@@ -44,6 +46,8 @@ describe('AuthService', () => {
   });
 
   it('initialize() — should set isAuthenticated to false when /me returns 401', () => {
+    localStorage.setItem('bl:hasSession', '1');
+
     service.initialize().subscribe();
 
     const req = httpMock.expectOne(`${API_BASE}/api/auth/me`);
@@ -107,5 +111,56 @@ describe('AuthService', () => {
 
   it('isAuthenticated() — should default to false before initialize() is called', () => {
     expect(service.isAuthenticated()).toBe(false);
+  });
+
+  describe('session hint (localStorage)', () => {
+    beforeEach(() => localStorage.clear());
+    afterEach(() => localStorage.clear());
+
+    it('should not call /api/auth/me when no session flag in localStorage', () => {
+      service.initialize().subscribe();
+
+      httpMock.expectNone(`${API_BASE}/api/auth/me`);
+    });
+
+    it('should call /api/auth/me when session flag is present', () => {
+      localStorage.setItem('bl:hasSession', '1');
+
+      service.initialize().subscribe();
+
+      const req = httpMock.expectOne(`${API_BASE}/api/auth/me`);
+      req.flush({ id: MOCK_USER_ID, email: VALID_EMAIL, createdAt: '2026-01-01T00:00:00Z' });
+    });
+
+    it('should set session flag on successful login', () => {
+      service.login({ email: VALID_EMAIL, password: VALID_PASSWORD }).subscribe();
+
+      const req = httpMock.expectOne(`${API_BASE}/api/auth/login`);
+      req.flush(null);
+
+      expect(localStorage.getItem('bl:hasSession')).toBe('1');
+    });
+
+    it('should remove session flag on logout', () => {
+      localStorage.setItem('bl:hasSession', '1');
+
+      service.logout();
+
+      const req = httpMock.expectOne(`${API_BASE}/api/auth/logout`);
+      req.flush(null);
+
+      expect(localStorage.getItem('bl:hasSession')).toBeNull();
+    });
+
+    it('should remove session flag when /api/auth/me returns 401', () => {
+      localStorage.setItem('bl:hasSession', '1');
+
+      service.initialize().subscribe();
+
+      const req = httpMock.expectOne(`${API_BASE}/api/auth/me`);
+      req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+      expect(localStorage.getItem('bl:hasSession')).toBeNull();
+    });
   });
 });
